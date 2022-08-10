@@ -1,0 +1,17 @@
+{
+  "name": "tbm",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "autoprefixer": "^10.4.8",
+    "postcss": "^8.4.16",
+    "tailwindcss": "^3.1.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "build": "tailwindcss build gui/css/tailwind.css -o public/css/tailwind.css",
+    "watch": "tailwindcss build gui/css/tailwind.css -o public/css/tailwind.css -w"
+  },
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Twitter Bookmark Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/tailwind.css" rel="stylesheet">
+</head>
+<body class="bg-slate-900 text-slate-200">
+<div class="flex justify-center">
+    <div class="container bg-slate-800 py-4 px-4">
+        <div class="flex flex-wrap w-full">
+            <div class="w-full">
+                <span class="text-4xl font-bold text-yellow-500">Twitter Bookmark Manager</span>
+            </div>
+
+            <div class="w-full" id="error-holder"></div>
+            <div class="w-full mt-4" id="search-holder">
+                <input type="text" id="search-input" class=" px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+            </div>
+
+            <div class="w-full text-center pt-8 pb-4" id="loading">
+                Have some patients.. Stuff is loading
+            </div>
+
+            <div class="w-full pt-4 flex flex-wrap" id="tweet-holder">
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script type="application/javascript" src="/js/app.js"></script>
+</body>
+</html>

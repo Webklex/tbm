@@ -1,0 +1,8 @@
+/.idea/
+/build/
+/data/
+/config/
+/examples/
+/node_modules/
+test.sh
+publish.sh
