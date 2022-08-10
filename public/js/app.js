@@ -15,10 +15,10 @@
     const addTweet = (user, tweet) => {
         let content = tweet.full_text;
         tweet.entities.hashtags.map(ht => {
-            content = content.replace(`#${ht.text}`, `<a class="text-teal-500" href="https://twitter.com/hashtag/${ht.text}" target="_blank" rel="noreferrer">#${ht.text}</a>`)
+            content = content.replace(new RegExp(`#${ht.text}( |$)`), `<a class="text-teal-500" href="https://twitter.com/hashtag/${ht.text}" target="_blank" rel="noreferrer">#${ht.text}</a> `)
         }).join(" ")
         tweet.entities.user_mentions.map(ht => {
-            content = content.replace(`@${ht.screen_name}`, `<a class="text-teal-600" href="https://twitter.com/${ht.screen_name}" target="_blank" rel="noreferrer">@${ht.screen_name}</a>`)
+            content = content.replace(new RegExp(`@${ht.screen_name}( |$)`), `<a class="text-teal-600" href="https://twitter.com/${ht.screen_name}" target="_blank" rel="noreferrer">@${ht.screen_name}</a>`)
         }).join(" ")
         tweet.entities.urls.map(ht => {
             content = content.replace(`${ht.url}`, `<a class="text-yellow-600" href="${ht.expanded_url}" target="_blank" rel="noreferrer">${ht.expanded_url}</a>`)
