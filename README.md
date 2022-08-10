@@ -2,8 +2,27 @@
 
 Fetch all your bookmarked tweets and make them accessible through a webinterface.
 
+[![Releases][ico-release]](https://github.com/Webklex/tbm/releases)
+[![Downloads][ico-downloads]](https://github.com/Webklex/tbm/releases)
+[![License][ico-license]](LICENSE.md)
+[![Hits][ico-hits]][link-hits]
+
 ![Search Tweets](.github/images/search_tweets.png)
 (Search for bookmarked tweets)
+
+## Table of Contents
+- [Features](#features)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Api](#websocket-commands)
+- [Build](#build)
+- [Support](#support)
+- [Security](#security)
+- [License](#license)
+
+## Features
+- Fetch all bookmarked tweets
+- Search for all bookmarked tweets containing a given phrase (this includes: username, real name, hashtag, tweet content and real urls)
 
 ## Usage
 In order to fetch your bookmarks, you'll have to supply an active access token with a matching cookie. 
@@ -120,3 +139,44 @@ Build a new regular binary:
 ```bash
 go build -ldflags "-w -s -X main.buildNumber=1 -X main.buildVersion=custom" -o tbm
 ```
+
+
+
+### Features & pull requests
+Everyone can contribute to this project. Every pull request will be considered, but it can also happen to be declined.
+To prevent unnecessary work, please consider to create a [feature issue](https://github.com/webklex/tbm/issues/new?template=feature_request.md)
+first, if you're planning to do bigger changes. Of course, you can also create a new [feature issue](https://github.com/webklex/tbm/issues/new?template=feature_request.md)
+if you're just wishing a feature ;)
+
+>Off-topic, rude or abusive issues will be deleted without any notice.
+
+
+## Support
+If you encounter any problems or if you find a bug, please don't hesitate to create a new [issue](https://github.com/webklex/tbm/issues).
+However, please be aware that it might take some time to get an answer.
+
+If you need **immediate** or **commercial** support, feel free to send me a mail at github@webklex.com.
+
+## Change log
+
+Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
+
+## Security
+
+If you discover any security related issues, please email github@webklex.com instead of using the issue tracker.
+
+## Credits
+- [Webklex][link-author]
+- [All Contributors][link-contributors]
+
+## License
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+
+[ico-license]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square
+[ico-release]: https://img.shields.io/github/v/release/webklex/tbm?style=flat-square
+[ico-downloads]: https://img.shields.io/github/downloads/webklex/tbm/total?style=flat-square
+[ico-hits]: https://hits.webklex.com/svg/webklex/tbm?1
+
+[link-hits]: https://hits.webklex.com
+[link-author]: https://github.com/webklex
+[link-contributors]: https://github.com/webklex/tbm/graphs/contributors
