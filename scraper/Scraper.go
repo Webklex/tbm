@@ -2,10 +2,13 @@ package scraper
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -172,4 +175,28 @@ func (s *Scraper) run() {
 		s.variables["cursor"] = cursor
 		go s.run()
 	}
+}
+
+func (s *Scraper) Download(src, target string) error {
+	req, err := http.NewRequest("GET", src, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Cookie", s.Cookie)
+	req.Header.Set("authorization", "Bearer "+s.AccessToken)
+	req.Header.Set("x-csrf-token", s.csrfToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return errors.New("failed to download resource with \"" + resp.Status + "\" from " + src)
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(target, b, 0644)
 }

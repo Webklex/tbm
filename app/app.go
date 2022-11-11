@@ -3,8 +3,10 @@ package app
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path"
 	"sort"
@@ -67,7 +69,8 @@ func (a *Application) Load() error {
 		return err
 	}
 	filesystem.CreateDirectory(a.DataDir)
-	a.Server.Load()
+	filesystem.CreateDirectory(path.Join(a.DataDir, "media"))
+	a.Server.Load(path.Join(a.DataDir, "media"))
 	a.LoadTweetCache()
 
 	return nil
@@ -190,6 +193,26 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 				r := NewResponse()
 				r.Data["user"] = ct.User
 				r.Data["tweet"] = ct.Tweet
+
+				ext, _ := GetFileExtensionFromUrl(ct.User.Legacy.ProfileImageUrlHttps)
+				if ext == "" {
+					ext = "blob"
+				}
+				userImageFilename := path.Join(a.DataDir, "media", ct.User.RestId+"."+ext)
+
+				_ = a.Scraper.Download(ct.User.Legacy.ProfileImageUrlHttps, userImageFilename)
+				if ct.Tweet.Entities.Media != nil {
+					for _, media := range ct.Tweet.Entities.Media {
+						ext, _ = GetFileExtensionFromUrl(media.MediaUrlHttps)
+						if ext == "" {
+							ext = "blob"
+						}
+						mediaImageFilename := path.Join(a.DataDir, "media", media.IdStr+"."+ext)
+
+						_ = a.Scraper.Download(media.MediaUrlHttps, mediaImageFilename)
+					}
+				}
+
 				if b, e := r.Encode(); e == nil {
 					a.Server.Hub().Broadcast(b)
 				} else {
@@ -209,4 +232,16 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 		fmt.Printf("New tweet fetched: %s\n", ct.Tweet.IdStr)
 	}
 	return true
+}
+
+func GetFileExtensionFromUrl(rawUrl string) (string, error) {
+	u, err := url.Parse(rawUrl)
+	if err != nil {
+		return "", err
+	}
+	pos := strings.LastIndex(u.Path, ".")
+	if pos == -1 {
+		return "", errors.New("couldn't find a period to indicate a file extension")
+	}
+	return u.Path[pos+1 : len(u.Path)], nil
 }

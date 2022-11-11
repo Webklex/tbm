@@ -36,7 +36,7 @@
 <div class="border border-solid border-1 border-slate-600 py-2 px-2 flex flex-wrap rounded">
     <div class="w-auto pr-2">
         <a href="https://twitter.com/${user.legacy.screen_name}" target="_blank" rel="noreferrer">
-            <img class="rounded-full" src="${user.legacy.profile_image_url_https}"  alt=""/>
+            <img class="rounded-full" src="/media/${user.rest_id}"  alt=""/>
         </a> 
     </div>
     <div class="grow">
@@ -52,7 +52,7 @@
         ${content}
     </div>
     <div class="w-full">
-        ${tweet.entities.media?.map(ht => `<a href="${ht.media_url_https}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="${ht.media_url_https}" rel="noreferrer" alt=""/></a>`)?.join(" ") ?? ""}
+        ${tweet.entities.media?.map(ht => `<a href="${ht.media_url_https}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/${ht.id_str}" rel="noreferrer" alt=""/></a>`)?.join(" ") ?? ""}
     </div>
     <div class="w-1/2 text-xs text-slate-400 pt-2" title="Tweet ID">
         ${tweet.id_str}

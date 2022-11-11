@@ -6,6 +6,11 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type Server struct {
@@ -14,6 +19,7 @@ type Server struct {
 
 	websocketHub *WebsocketHub
 	assets       embed.FS
+	mediaDir     string
 }
 
 func NewServer(mcb func(message *Message), assets embed.FS) *Server {
@@ -28,7 +34,8 @@ func NewServer(mcb func(message *Message), assets embed.FS) *Server {
 	return a
 }
 
-func (a *Server) Load() {
+func (a *Server) Load(mediaDir string) {
+	a.mediaDir = mediaDir
 	a.setRoutes()
 }
 
@@ -42,6 +49,7 @@ func (a *Server) setRoutes() {
 	// Serve static files
 	http.Handle("/", http.FileServer(http.FS(htmlContent)))
 	http.HandleFunc("/ws", a.websocketEndpoint)
+	http.HandleFunc("/media/", a.mediaEndpoint)
 }
 
 func (a *Server) Start() error {
@@ -57,6 +65,41 @@ func (a *Server) Address() string {
 
 func (a *Server) Hub() *WebsocketHub {
 	return a.websocketHub
+}
+
+func (a *Server) mediaEndpoint(w http.ResponseWriter, r *http.Request) {
+	_mediaId, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/media/"))
+	if _mediaId <= 0 {
+		// not found
+		http.Error(w, "404 image not found", http.StatusNotFound)
+		return
+	}
+	mediaId := fmt.Sprintf("%d", _mediaId)
+	mediaFilename := ""
+
+	_ = filepath.Walk(a.mediaDir, func(mediaFilepath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if !info.IsDir() && strings.TrimSuffix(filepath.Base(mediaFilepath), filepath.Ext(mediaFilepath)) == mediaId {
+			mediaFilename = mediaFilepath
+		}
+
+		return nil
+	})
+
+	if mediaFilename != "" {
+		f, err := os.Open(mediaFilename)
+		if err != nil {
+			http.Error(w, "404 image not found", http.StatusNotFound)
+			return
+		}
+		defer f.Close()
+
+		http.ServeContent(w, r, mediaFilename, time.Now(), f)
+	} else {
+		http.Error(w, "404 image not found", http.StatusNotFound)
+	}
 }
 
 func (a *Server) websocketEndpoint(w http.ResponseWriter, r *http.Request) {
