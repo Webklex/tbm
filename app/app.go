@@ -204,7 +204,9 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 			return false
 		}
 
+		a.bookmarkIndex--
 		ct.Conversation = *conversation
+		ct.Index = a.bookmarkIndex
 
 		d, err := json.Marshal(ct)
 		if err == nil {
@@ -276,8 +278,6 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 		} else {
 			fmt.Printf("New tweet fetched: %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 		}
-	} else {
-		return false
 	}
 	return true
 }
