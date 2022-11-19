@@ -2,6 +2,7 @@ package server
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -81,8 +82,16 @@ func (a *Server) mediaEndpoint(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil
 		}
-		if !info.IsDir() && strings.TrimSuffix(filepath.Base(mediaFilepath), filepath.Ext(mediaFilepath)) == mediaId {
-			mediaFilename = mediaFilepath
+		if !info.IsDir() {
+			ext := filepath.Ext(mediaFilepath)
+			if strings.TrimSuffix(filepath.Base(mediaFilepath), ext) == mediaId {
+				for _, allowed := range []string{"jpg", "jpeg", "png", "gif"} {
+					if allowed == ext[1:] {
+						mediaFilename = mediaFilepath
+						return errors.New("done")
+					}
+				}
+			}
 		}
 
 		return nil
