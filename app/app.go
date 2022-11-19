@@ -18,8 +18,9 @@ import (
 )
 
 type Application struct {
-	Timezone string `json:"timezone"`
-	DataDir  string `json:"data_dir"`
+	Timezone string          `json:"timezone"`
+	DataDir  string          `json:"data_dir"`
+	Mode     ApplicationMode `json:"mode"`
 
 	Build          Build  `json:"-"`
 	ConfigFileName string `json:"-"`
@@ -36,6 +37,17 @@ type Build struct {
 	Version string `json:"version"`
 }
 
+type ApplicationMode string
+
+const (
+	OfflineMode ApplicationMode = "offline"
+	OnlineMode  ApplicationMode = "online"
+)
+
+func (m ApplicationMode) ToString() string {
+	return string(m)
+}
+
 func NewApplication(assets embed.FS) *Application {
 	dir, _ := os.Getwd()
 
@@ -46,6 +58,7 @@ func NewApplication(assets embed.FS) *Application {
 		Scraper:        scraper.NewScraper(),
 		tweets:         make([]*scraper.CachedTweet, 0),
 		bookmarkIndex:  1000000,
+		Mode:           OnlineMode,
 	}
 	a.Server = server.NewServer(a.websocketCallback, assets)
 	a.Scraper.OnNewTweet = a.onNewTweet
@@ -114,7 +127,11 @@ func (a *Application) LoadTweetCache() {
 }
 
 func (a *Application) Start() error {
-	a.Scraper.Start()
+	a.Server.AddState("mode", a.Mode)
+
+	if a.Mode == OnlineMode {
+		a.Scraper.Start()
+	}
 	return a.Server.Start()
 }
 

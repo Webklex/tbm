@@ -1,6 +1,7 @@
 {
   "timezone": "UTC",
   "data_dir": "./data",
+  "mode": "online",
   "server": {
     "host": "localhost",
     "port": 4788

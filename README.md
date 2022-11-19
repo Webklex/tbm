@@ -36,6 +36,8 @@ You can get both by the following steps:
 ```bash
   -config string
         Application config file (default "./config/config.json")
+  -offline
+        Don't fetch any new bookmarks and link to local files only
   -access-token string
         Twitter bearer access token
   -cookie string
@@ -58,7 +60,6 @@ You can get both by the following steps:
         Show version and exit
   -help
         Show help and exit
-
 ```
 
 ## Configuration
@@ -67,6 +68,7 @@ Besides the command arguments, you can also provide a config file:
 {
   "timezone": "UTC",
   "data_dir": "./data",
+  "mode": "online",
   "server": {
     "host": "localhost",
     "port": 4788
@@ -79,6 +81,11 @@ Besides the command arguments, you can also provide a config file:
   }
 }
 ```
+
+### Modes
+There are currently two different modes available. `online` and `offline`. If you enable 
+`offline` mode, the program won't fetch any new bookmarks and only reference previously downloaded
+resources such as tweets and media files.
 
 ## Websocket commands
 The websocket can be accessed under `ws://{host}:{port}/ws`.

@@ -10,7 +10,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - NaN
 
 ### Added
-- NaN
+- Offline mode support added (load everything from local sources)
 
 ### Breaking changes
 - NaN

@@ -33,6 +33,7 @@ func main() {
 	flag.DurationVar(&a.Scraper.Delay, "delay", a.Scraper.Delay, "Delay your request by a given time")
 
 	sv := flag.Bool("version", false, "Show version and exit")
+	offline := flag.Bool("offline", false, "Don't fetch any new bookmarks and link to local files only")
 	flag.Parse()
 
 	a.Build = app.Build{
@@ -44,6 +45,9 @@ func main() {
 		fmt.Printf("Version: %s\n", a.Build.Version)
 		fmt.Printf("Build number: %s\n", a.Build.Number)
 		return
+	}
+	if *offline {
+		a.Mode = app.OfflineMode
 	}
 
 	if err := a.Load(); err != nil {

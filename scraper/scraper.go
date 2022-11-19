@@ -151,7 +151,11 @@ func (s *Scraper) buildUrl() string {
 	)
 }
 
-func (s *Scraper) run() {
+func (s *Scraper) run(attempts ...int) {
+	if len(attempts) > 10 {
+		fmt.Printf("api failed to many times: skipping request\n")
+		return
+	}
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
@@ -193,6 +197,10 @@ func (s *Scraper) run() {
 	if len(rb.Errors) > 0 {
 		err := rb.Errors[0]
 		fmt.Printf("twitter: api error: %s\n", err.Message)
+		fmt.Printf("attempting to call the failed request again...\n")
+
+		attempts = append(attempts, 1)
+		go s.run(attempts...)
 		return
 	}
 
