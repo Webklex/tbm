@@ -4,15 +4,21 @@
     const errorHolder = document.getElementById("error-holder");
     const tweetHolder = document.getElementById("tweet-holder");
     const searchHolder = document.getElementById("search-holder");
+    const counterHolder = document.getElementById("counter-holder");
     const loading = document.getElementById("loading");
+    var counter = 0;
     
     // Display a given error message
     const setError = (err) => {
         errorHolder.innerHTML = `<div class='py-2 px-2 border-l-4 border-red-700'>An error occurred: ${err}</div>`
     }
 
+    const updateCounter = () => {
+        counterHolder.innerHTML = `<div class='py-2'>Tweets found: ${counter}</div>`
+    }
+
     // Display a new tweet in the first position
-    const addTweet = (user, tweet) => {
+    const addTweet = (user, tweet, conversation) => {
         let content = tweet.full_text;
         tweet.entities.hashtags.map(ht => {
             content = content.replace(new RegExp(`#${ht.text}( |$)`), `<a class="text-teal-500" href="https://twitter.com/hashtag/${ht.text}" target="_blank" rel="noreferrer">#${ht.text}</a> `)
@@ -52,10 +58,16 @@
         ${content}
     </div>
     <div class="w-full">
-        ${tweet.entities.media?.map(ht => `<a href="${ht.media_url_https}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/${ht.id_str}" rel="noreferrer" alt=""/></a>`)?.join(" ") ?? ""}
+        ${conversation.globalObjects.tweets?.[tweet.id_str]?.extended_entities.media?.map(ht => {
+            if (ht.type === "video") {
+                return `<a href="${ht.video_info?.variants[ht.video_info.variants.length - 1]?.url}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/${ht.id_str}" rel="noreferrer" alt=""/></a>`;
+            }else{
+                return `<a href="${ht.media_url_https}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/${ht.id_str}" rel="noreferrer" alt=""/></a>`;
+            }
+        })?.join(" ") ?? ""}
     </div>
     <div class="w-1/2 text-xs text-slate-400 pt-2" title="Tweet ID">
-        ${tweet.id_str}
+        <a href="https://twitter.com/${user.legacy.screen_name}/status/${tweet.id_str}" class="text-yellow-600" target="_blank" rel="noreferrer">${tweet.id_str}</a>
     </div>
     <div class="w-1/2 text-xs text-right text-slate-400 pt-2">
         ${tweetDate}
@@ -112,15 +124,21 @@
             for (let i = 0; i < keys.length; i++) {
                 switch (keys[i]) {
                     case "tweet":
-                        return addTweet(data[keys[i]].user, data[keys[i]].tweet)
+                        counter++;
+                        updateCounter();
+                        return addTweet(data.user, data.tweet, data.conversation)
                     case "tweets":
-                        if (data[keys[i]].length === 0) {
+                        counter = 0;
+                        if (data["tweets"].length === 0) {
                             return tweetHolder.innerHTML = "<div class='w-full text-center pt-8 pb-4'>Not tweets found..</div>";
                         }
                         tweetHolder.innerHTML = "";
-                        return data[keys[i]].map(tweet => {
-                            return addTweet(tweet.user, tweet.tweet)
-                        })
+                        updateCounter();
+                        data["tweets"].map(tweet => {
+                            counter++;
+                            return addTweet(tweet.user, tweet.tweet, tweet.conversation)
+                        });
+                        return updateCounter();
                     default:
                         console.log("response key not implemented:", keys[i])
                         
