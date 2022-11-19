@@ -10,10 +10,19 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Identical Hashtag and Reference linking fixed
 
 ### Added
-- NaN
+- Video download support added
+- Default config added
+- Original source back-links
+- Result counter added to the gui
 
 ### Breaking changes
 - NaN
+
+
+## [0.1.0] - 2022-11-11
+### Added
+- Local media cache added
+
 
 ## [0.0.1] - 2022-08-10
 Initial release
