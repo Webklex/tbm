@@ -94,6 +94,9 @@ func (s *Scraper) Stop() {
 }
 
 func (s *Scraper) delayRequest() {
+	if s.lastRequest.IsZero() {
+		return
+	}
 	delta := s.Delay - time.Now().Sub(s.lastRequest)
 	if delta > 0 {
 		time.Sleep(delta)
@@ -168,6 +171,12 @@ func (s *Scraper) run() {
 	rb := &BookmarkResponse{}
 	if err := json.Unmarshal(resBody, rb); err != nil {
 		fmt.Printf("twitter: could not read response body: %s\n", err)
+		return
+	}
+
+	if len(rb.Errors) > 0 {
+		err := rb.Errors[0]
+		fmt.Printf("twitter: api error: %s\n", err.Message)
 		return
 	}
 
