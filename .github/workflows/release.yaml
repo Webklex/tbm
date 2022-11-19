@@ -1,0 +1,52 @@
+on:
+  release:
+    types: [created]
+
+env:
+  BINARY_NAME: tbm
+
+jobs:
+  releases-matrix:
+    name: Release tbm
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
+        goos: [linux, windows, darwin]
+        goarch: ["386", amd64, arm64]
+        exclude:
+          - goarch: "386"
+            goos: darwin
+          - goarch: arm64
+            goos: windows
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Setup
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Set BUILD_TIME env
+        run: echo BUILD_TIME=$(date -u +%Y%m%d-%H%M) >> ${GITHUB_ENV}
+
+      - name: Set BUILD_VERSION env
+        run: echo BUILD_VERSION=$(echo ${GITHUB_REF} | rev | cut -d'/' -f 1 | rev ) >> ${GITHUB_ENV}
+
+      - name: Environment Printer
+        uses: managedkaos/print-env@v1.0
+
+      # https://github.com/marketplace/actions/go-release-binaries
+      - uses: wangyoucao577/go-release-action@v1.33
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          # goversion: "https://dl.google.com/go/go1.17.2.linux-amd64.tar.gz"
+          project_path: "./"
+          binary_name: "${{ env.BINARY_NAME }}"
+          asset_name: "${{ env.BINARY_NAME }}-${{ env.BUILD_TIME }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          ldflags: -X "main.buildNumber=${{ github.sha }} -X main.buildVersion=${{ env.BUILD_VERSION }}"
+          extra_files: config.json LICENSE README.md CHANGELOG.md
