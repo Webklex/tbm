@@ -34,25 +34,31 @@ You can get both by the following steps:
 5. Check if the `section` has changed (part of the url in front of `Bookmarks?variables=%7B%22count%22%3A20..`), if so copy it as well
 
 ```bash
-Usage of tbm:
-  -access-token string
-        Twitter bearer access token
   -config string
         Application config file (default "./config/config.json")
+  -access-token string
+        Twitter bearer access token
   -cookie string
         Twitter cookie string
   -data-dir string
         Folder containing all fetched data (default "./data")
+  -delay duration
+        Delay your request by a given time (default 30s)
   -host string
         Host address the api should bind to (default "localhost")
   -port uint
         Port the api should bind to (default 4788)
   -section string
         Twitter bookmark api section name (default "BvX-1Exs_MDBeKAedv2T_w")
+  -timeout duration
+        Request timeout (default 10s)
   -timezone string
         Application time zone (default "UTC")
   -version
         Show version and exit
+  -help
+        Show help and exit
+
 ```
 
 ## Configuration
@@ -66,6 +72,7 @@ Besides the command arguments, you can also provide a config file:
     "port": 4788
   },
   "scraper": {
+    "delay": "30s",
     "section": "BvX-1Exs_MDBeKAedv2T_w",
     "cookie": "guest_id=...",
     "access_token": "AAAAA..."
@@ -130,11 +137,6 @@ go run main.go
 ```
 
 ## Build
-Build a new release:
-```bash
-./build.sh
-```
-
 Build a new regular binary:
 ```bash
 go build -ldflags "-w -s -X main.buildNumber=1 -X main.buildVersion=custom" -o tbm
