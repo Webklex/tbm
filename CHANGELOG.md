@@ -16,6 +16,13 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - NaN
 
 
+## [1.0.1] - 2022-11-19
+### Fixed
+- Missing tweet index added
+- Additional api error handling added
+- Alternative request features added (support newer queries)
+
+
 ## [1.0.0] - 2022-11-19
 ### Fixed
 - Identical Hashtag and Reference linking fixed
