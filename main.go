@@ -29,6 +29,8 @@ func main() {
 	flag.StringVar(&a.Scraper.AccessToken, "access-token", a.Scraper.AccessToken, "Twitter bearer access token")
 	flag.StringVar(&a.Scraper.Cookie, "cookie", a.Scraper.Cookie, "Twitter cookie string")
 	flag.StringVar(&a.Scraper.Section, "section", a.Scraper.Section, "Twitter bookmark api section name")
+	flag.DurationVar(&a.Scraper.Timeout, "timeout", a.Scraper.Timeout, "Request timeout")
+	flag.DurationVar(&a.Scraper.Delay, "delay", a.Scraper.Delay, "Delay your request by a given time")
 
 	sv := flag.Bool("version", false, "Show version and exit")
 	flag.Parse()

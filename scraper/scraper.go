@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	FetchInterval = 60 * time.Second
+	FetchInterval = 1 * time.Minute
 )
 
 type Scraper struct {
@@ -29,6 +29,13 @@ type Scraper struct {
 	mx         sync.RWMutex
 	close      chan bool
 	OnNewTweet func(ct *CachedTweet) bool `json:"-"`
+
+	Delay       time.Duration `json:"-"`
+	Timeout     time.Duration `json:"-"`
+	lastRequest time.Time
+
+	RawTimeout string `json:"timeout"`
+	RawDelay   string `json:"delay"`
 }
 
 func NewScraper() *Scraper {
@@ -37,6 +44,9 @@ func NewScraper() *Scraper {
 		csrfToken:   "",
 		Cookie:      "",
 		Section:     "BvX-1Exs_MDBeKAedv2T_w",
+		Delay:       time.Second * 30,
+		Timeout:     time.Second * 10,
+		lastRequest: time.Time{},
 		variables: map[string]interface{}{
 			"count":                       20,
 			"cursor":                      "",
@@ -62,6 +72,7 @@ func NewScraper() *Scraper {
 
 func (s *Scraper) Start() {
 	s.LoadCsrfToken()
+	go s.run()
 	s.close = make(chan bool)
 
 	ticker := time.NewTicker(FetchInterval)
@@ -80,6 +91,13 @@ func (s *Scraper) Start() {
 
 func (s *Scraper) Stop() {
 	s.close <- true
+}
+
+func (s *Scraper) delayRequest() {
+	delta := s.Delay - time.Now().Sub(s.lastRequest)
+	if delta > 0 {
+		time.Sleep(delta)
+	}
 }
 
 func (s *Scraper) LoadCsrfToken() bool {
@@ -127,7 +145,10 @@ func (s *Scraper) run() {
 	req.Header.Set("authorization", "Bearer "+s.AccessToken)
 	req.Header.Set("x-csrf-token", s.csrfToken)
 
+	s.delayRequest()
 	res, err := http.DefaultClient.Do(req)
+	s.lastRequest = time.Now()
+
 	if err != nil {
 		fmt.Printf("client: error making http request: %s\n", err)
 		return
@@ -178,25 +199,93 @@ func (s *Scraper) run() {
 }
 
 func (s *Scraper) Download(src, target string) error {
-	req, err := http.NewRequest("GET", src, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Cookie", s.Cookie)
-	req.Header.Set("authorization", "Bearer "+s.AccessToken)
-	req.Header.Set("x-csrf-token", s.csrfToken)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return errors.New("failed to download resource with \"" + resp.Status + "\" from " + src)
-	}
-	b, err := io.ReadAll(resp.Body)
+	b, err := s.Get(src)
 	if err != nil {
 		return err
 	}
 
 	return os.WriteFile(target, b, 0644)
+}
+
+func (s *Scraper) TweetDetail(id string) (*ConversationResponse, error) {
+	req, err := http.NewRequest("GET", "https://twitter.com/i/api/2/timeline/conversation/"+id+".json", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Cookie", s.Cookie)
+	req.Header.Set("authorization", "Bearer "+s.AccessToken)
+	req.Header.Set("x-csrf-token", s.csrfToken)
+
+	q := req.URL.Query()
+	q.Add("include_profile_interstitial_type", "1")
+	q.Add("include_blocking", "1")
+	q.Add("include_blocked_by", "1")
+	q.Add("include_followed_by", "1")
+	q.Add("include_want_retweets", "1")
+	q.Add("include_mute_edge", "1")
+	q.Add("include_can_dm", "1")
+	q.Add("include_can_media_tag", "1")
+	q.Add("include_ext_has_nft_avatar", "1")
+	q.Add("skip_status", "1")
+	q.Add("cards_platform", "Web-12")
+	q.Add("include_cards", "1")
+	q.Add("include_ext_alt_text", "true")
+	q.Add("include_quote_count", "true")
+	q.Add("include_reply_count", "1")
+	q.Add("tweet_mode", "extended")
+	q.Add("include_entities", "true")
+	q.Add("include_user_entities", "true")
+	q.Add("include_ext_media_color", "true")
+	q.Add("include_ext_media_availability", "true")
+	q.Add("include_ext_sensitive_media_warning", "true")
+	q.Add("send_error_codes", "true")
+	q.Add("simple_quoted_tweet", "true")
+	q.Add("include_tweet_replies", "true")
+	q.Add("ext", "mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,superFollowMetadata")
+	req.URL.RawQuery = q.Encode()
+
+	s.delayRequest()
+	resp, err := http.DefaultClient.Do(req)
+	s.lastRequest = time.Now()
+
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.New("failed to download resource with \"" + resp.Status + "\" from " + "https://twitter.com/i/api/2/timeline/conversation/" + id + ".json")
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	v := &ConversationResponse{}
+	if err := json.Unmarshal(b, v); err != nil {
+		fmt.Printf("twitter: could not read response body: %s\n", err)
+		return nil, err
+	}
+	return v, nil
+}
+
+func (s *Scraper) Get(src string) ([]byte, error) {
+	req, err := http.NewRequest("GET", src, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Cookie", s.Cookie)
+	req.Header.Set("authorization", "Bearer "+s.AccessToken)
+	req.Header.Set("x-csrf-token", s.csrfToken)
+
+	s.delayRequest()
+	resp, err := http.DefaultClient.Do(req)
+	s.lastRequest = time.Now()
+
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.New("failed to download resource with \"" + resp.Status + "\" from " + src)
+	}
+
+	return io.ReadAll(resp.Body)
 }
