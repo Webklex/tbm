@@ -7,6 +7,17 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ## [UNRELEASED]
 ### Fixed
+- NaN
+
+### Added
+- NaN
+
+### Breaking changes
+- NaN
+
+
+## [1.0.0] - 2022-11-19
+### Fixed
 - Identical Hashtag and Reference linking fixed
 
 ### Added
@@ -14,9 +25,6 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Default config added
 - Original source back-links
 - Result counter added to the gui
-
-### Breaking changes
-- NaN
 
 
 ## [0.1.0] - 2022-11-11
