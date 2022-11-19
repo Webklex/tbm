@@ -1,5 +1,12 @@
 {
+  "timezone": "UTC",
+  "data_dir": "./data",
+  "server": {
+    "host": "localhost",
+    "port": 4788
+  },
   "scraper": {
+    "delay": "30s",
     "section": "BvX-1Exs_MDBeKAedv2T_w",
     "cookie": "",
     "access_token": ""
