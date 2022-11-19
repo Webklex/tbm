@@ -26,6 +26,9 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Original source back-links
 - Result counter added to the gui
 
+### Breaking changes
+- Previously cached json files aren't supported
+
 
 ## [0.1.0] - 2022-11-11
 ### Added
