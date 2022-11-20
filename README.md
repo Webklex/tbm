@@ -12,6 +12,7 @@ Fetch all your bookmarked tweets and make them accessible through a webinterface
 
 ## Table of Contents
 - [Features](#features)
+- [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Api](#websocket-commands)
@@ -24,6 +25,10 @@ Fetch all your bookmarked tweets and make them accessible through a webinterface
 - Fetch all bookmarked tweets
 - Search for all bookmarked tweets containing a given phrase (this includes: username, real name, hashtag, tweet content and real urls)
 
+## Installation
+You can either download a matching prebuild binary and config from the [releases](https://github.com/Webklex/tbm/releases)
+or clone this repository and [build](#build) it yourself.
+
 ## Usage
 In order to fetch your bookmarks, you'll have to supply an active access token with a matching cookie. 
 You can get both by the following steps:
@@ -32,6 +37,7 @@ You can get both by the following steps:
 3. Switch to the `Headers` tab if it isn't selected and scroll down to `Request Headers`
 4. Copy the line starting with `cookie: ` and `authorization: Bearer `. Make sure to enclose the entire cookie string in quotes (```"```). Escape possible quotes on key:values pairs inside the cookie as ```\"```.
 5. Check if the `section` has changed (part of the url in front of `Bookmarks?variables=%7B%22count%22%3A20..`), if so copy it as well
+6. (optional) To retrieve a valid `section` to remove a bookmark, keep the network tab open and remove a dummy bookmark. Look for a `DeleteBookmark` request and copy its `section` part to `sections.remove` or use it as `-remove-section` argument value.
 
 ```bash
   -config string
@@ -73,13 +79,19 @@ Besides the command arguments, you can also provide a config file:
   "timezone": "UTC",
   "data_dir": "./data",
   "mode": "online",
+  "danger": {
+    "remove_bookmarks": false
+  },
   "server": {
     "host": "localhost",
     "port": 4788
   },
   "scraper": {
+    "sections": {
+      "index": "BvX-1Exs_MDBeKAedv2T_w",
+      "remove": "Wlmlj2-xzyS1GN3a6cj-mQ"
+    },
     "delay": "30s",
-    "section": "BvX-1Exs_MDBeKAedv2T_w",
     "cookie": "guest_id=...",
     "access_token": "AAAAA..."
   }
