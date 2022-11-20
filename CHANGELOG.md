@@ -12,6 +12,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ### Added
 - Offline mode support added (load everything from local sources)
 - Thread view added
+- (Optional) Remove bookmarked tweets after download using `--danger-remove-bookmarks`
 
 ### Breaking changes
 - NaN

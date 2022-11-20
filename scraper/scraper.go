@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,8 +22,8 @@ const (
 type Scraper struct {
 	AccessToken string `json:"access_token"`
 	csrfToken   string
-	Cookie      string `json:"cookie"`
-	Section     string `json:"section"`
+	Cookie      string   `json:"cookie"`
+	Sections    Sections `json:"sections"`
 	variables   map[string]interface{}
 	features    map[string]interface{}
 
@@ -38,12 +39,20 @@ type Scraper struct {
 	RawDelay   string `json:"delay"`
 }
 
+type Sections struct {
+	Index  string `json:"index"`
+	Remove string `json:"remove"`
+}
+
 func NewScraper() *Scraper {
 	return &Scraper{
 		AccessToken: "",
 		csrfToken:   "",
 		Cookie:      "",
-		Section:     "BvX-1Exs_MDBeKAedv2T_w",
+		Sections: Sections{
+			Index:  "BvX-1Exs_MDBeKAedv2T_w",
+			Remove: "Wlmlj2-xzyS1GN3a6cj-mQ",
+		},
 		Delay:       time.Second * 30,
 		Timeout:     time.Second * 10,
 		lastRequest: time.Time{},
@@ -79,9 +88,10 @@ func NewScraper() *Scraper {
 	}
 }
 
-func (s *Scraper) Start() {
+func (s *Scraper) Start(removeBookmarks bool) {
 	s.LoadCsrfToken()
-	go s.run()
+
+	go s.run(removeBookmarks)
 	s.close = make(chan bool)
 
 	ticker := time.NewTicker(FetchInterval)
@@ -89,7 +99,7 @@ func (s *Scraper) Start() {
 		for {
 			select {
 			case <-ticker.C:
-				s.run()
+				s.run(removeBookmarks)
 			case <-s.close:
 				ticker.Stop()
 				return
@@ -138,19 +148,20 @@ func (s *Scraper) buildUrl() string {
 
 	return fmt.Sprintf(
 		"https://twitter.com/i/api/graphql/%s/Bookmarks?variables=%s&features=%s",
-		s.Section,
+		s.Sections.Index,
 		url.QueryEscape(string(jvb)),
 		url.QueryEscape(string(fvb)),
 	)
 }
 
-func (s *Scraper) run(attempts ...int) {
+func (s *Scraper) run(removeBookmarks bool, attempts ...int) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
 	if len(attempts) > 10 {
 		fmt.Printf("api failed to many times: skipping request\n")
 		return
 	}
-	s.mx.Lock()
-	defer s.mx.Unlock()
 
 	req, err := http.NewRequest("GET", s.buildUrl(), nil)
 	if err != nil {
@@ -189,11 +200,11 @@ func (s *Scraper) run(attempts ...int) {
 
 	if len(rb.Errors) > 0 {
 		err := rb.Errors[0]
-		fmt.Printf("twitter: api error: %s\n", err.Message)
+		fmt.Printf("twitter: api error at curser \"%s\" with %s\n", s.variables["cursor"], err.Message)
 		fmt.Printf("attempting to call the failed request again...\n")
 
 		attempts = append(attempts, 1)
-		go s.run(attempts...)
+		go s.run(removeBookmarks, attempts...)
 		return
 	}
 
@@ -209,6 +220,16 @@ func (s *Scraper) run(attempts ...int) {
 				}) == false {
 					return
 				}
+				if removeBookmarks {
+					r, err := s.DeleteBookmarkDetail(entry.Content.ItemContent.TweetResults.Result.Legacy.IdStr)
+					if err != nil {
+						attempts = append(attempts, 1)
+						go s.run(removeBookmarks, attempts...)
+						return
+					} else if r.Data.TweetBookmarkDelete != "Done" {
+						fmt.Printf("failed to remove bookmark: %s", entry.Content.ItemContent.TweetResults.Result.Legacy.IdStr)
+					}
+				}
 			case "TimelineTimelineCursor":
 				//Cursor
 				if entry.Content.CursorType == "Bottom" {
@@ -219,8 +240,11 @@ func (s *Scraper) run(attempts ...int) {
 	}
 
 	if cursor != "" {
+		if removeBookmarks {
+			cursor = ""
+		}
 		s.variables["cursor"] = cursor
-		go s.run()
+		go s.run(removeBookmarks)
 	}
 }
 
@@ -231,6 +255,53 @@ func (s *Scraper) Download(src, target string) error {
 	}
 
 	return os.WriteFile(target, b, 0644)
+}
+
+type RemoveBookmarkResponse struct {
+	Data struct {
+		TweetBookmarkDelete string `json:"tweet_bookmark_delete"`
+	} `json:"data"`
+}
+
+func (s *Scraper) DeleteBookmarkDetail(id string) (*RemoveBookmarkResponse, error) {
+	b, err := json.Marshal(map[string]interface{}{
+		"variables": map[string]string{
+			"tweet_id": id,
+		},
+		"queryId": s.Sections.Remove,
+	})
+
+	req, err := http.NewRequest("POST", "https://twitter.com/i/api/graphql/"+s.Sections.Remove+"/DeleteBookmark", bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Cookie", s.Cookie)
+	req.Header.Set("authorization", "Bearer "+s.AccessToken)
+	req.Header.Set("x-csrf-token", s.csrfToken)
+	req.Header.Set("content-type", "application/json")
+
+	s.delayRequest()
+	resp, err := http.DefaultClient.Do(req)
+	s.lastRequest = time.Now()
+
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.New("failed to remove bookmark " + id + " with status \"" + resp.Status)
+	}
+
+	rb, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	v := &RemoveBookmarkResponse{}
+	if err := json.Unmarshal(rb, v); err != nil {
+		fmt.Printf("twitter: could not read response body: %s\n", err)
+		return nil, err
+	}
+
+	return v, nil
 }
 
 func (s *Scraper) TweetDetail(id string) (*ConversationResponse, error) {

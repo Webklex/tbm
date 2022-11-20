@@ -28,9 +28,11 @@ func main() {
 	flag.UintVar(&a.Server.Port, "port", a.Server.Port, "Port the api should bind to")
 	flag.StringVar(&a.Scraper.AccessToken, "access-token", a.Scraper.AccessToken, "Twitter bearer access token")
 	flag.StringVar(&a.Scraper.Cookie, "cookie", a.Scraper.Cookie, "Twitter cookie string")
-	flag.StringVar(&a.Scraper.Section, "section", a.Scraper.Section, "Twitter bookmark api section name")
+	flag.StringVar(&a.Scraper.Sections.Index, "index-section", a.Scraper.Sections.Index, "Twitter bookmark api section name")
+	flag.StringVar(&a.Scraper.Sections.Remove, "remove-section", a.Scraper.Sections.Remove, "Twitter remove bookmark api section name")
 	flag.DurationVar(&a.Scraper.Timeout, "timeout", a.Scraper.Timeout, "Request timeout")
 	flag.DurationVar(&a.Scraper.Delay, "delay", a.Scraper.Delay, "Delay your request by a given time")
+	flag.BoolVar(&a.Danger.RemoveBookmarks, "danger-remove-bookmarks", a.Danger.RemoveBookmarks, "Remove the bookmark on Twitter if the tweet has been downloaded")
 
 	sv := flag.Bool("version", false, "Show version and exit")
 	offline := flag.Bool("offline", false, "Don't fetch new bookmarks; link to local files only")

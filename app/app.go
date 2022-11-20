@@ -21,6 +21,7 @@ type Application struct {
 	Timezone string          `json:"timezone"`
 	DataDir  string          `json:"data_dir"`
 	Mode     ApplicationMode `json:"mode"`
+	Danger   DangerOptions   `json:"danger"`
 
 	Build          Build  `json:"-"`
 	ConfigFileName string `json:"-"`
@@ -35,6 +36,10 @@ type Application struct {
 type Build struct {
 	Number  string `json:"number"`
 	Version string `json:"version"`
+}
+
+type DangerOptions struct {
+	RemoveBookmarks bool `json:"remove_bookmarks"`
 }
 
 type ApplicationMode string
@@ -59,6 +64,9 @@ func NewApplication(assets embed.FS) *Application {
 		tweets:         make([]*scraper.CachedTweet, 0),
 		bookmarkIndex:  1000000,
 		Mode:           OnlineMode,
+		Danger: DangerOptions{
+			RemoveBookmarks: false,
+		},
 	}
 	a.Server = server.NewServer(a.websocketCallback, assets)
 	a.Scraper.OnNewTweet = a.onNewTweet
@@ -130,7 +138,7 @@ func (a *Application) Start() error {
 	a.Server.AddState("mode", a.Mode)
 
 	if a.Mode == OnlineMode {
-		a.Scraper.Start()
+		a.Scraper.Start(a.Danger.RemoveBookmarks)
 	}
 	return a.Server.Start()
 }

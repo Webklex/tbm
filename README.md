@@ -50,12 +50,16 @@ You can get both by the following steps:
         Host address the api should bind to (default "localhost")
   -port uint
         Port the api should bind to (default 4788)
-  -section string
+  -remove-section string
+        Twitter remove bookmark api section name (default "Wlmlj2-xzyS1GN3a6cj-mQ")
+  -index-section string
         Twitter bookmark api section name (default "BvX-1Exs_MDBeKAedv2T_w")
   -timeout duration
         Request timeout (default 10s)
   -timezone string
         Application time zone (default "UTC")
+  -danger-remove-bookmarks
+        Remove the bookmark on Twitter if the tweet has been downloaded
   -version
         Show version and exit
   -help

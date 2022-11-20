@@ -49,4 +49,4 @@ jobs:
           binary_name: "${{ env.BINARY_NAME }}"
           asset_name: "${{ env.BINARY_NAME }}-${{ env.BUILD_VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}"
           ldflags: -X "main.buildNumber=${{ github.sha }}" -X "main.buildVersion=${{ env.BUILD_VERSION }}"
-          extra_files: config.json LICENSE README.md CHANGELOG.md
+          extra_files: config.template.json LICENSE README.md CHANGELOG.md
