@@ -1,5 +1,7 @@
 package scraper
 
+import "time"
+
 type BookmarkResponse struct {
 	Data struct {
 		BookmarkTimeline struct {
@@ -179,10 +181,15 @@ type UserResult struct {
 }
 
 type TweetResult struct {
-	CreatedAt         string `json:"created_at"`
-	ConversationIdStr string `json:"conversation_id_str"`
-	DisplayTextRange  []int  `json:"display_text_range"`
-	Entities          struct {
+	CreatedAt            string    `json:"created_at"`
+	InReplyToStatusIDStr string    `json:"in_reply_to_status_id_str"`
+	Place                Place     `json:"place"`
+	RetweetedStatusIDStr string    `json:"retweeted_status_id_str"`
+	QuotedStatusIDStr    string    `json:"quoted_status_id_str"`
+	Time                 time.Time `json:"time"`
+	ConversationIdStr    string    `json:"conversation_id_str"`
+	DisplayTextRange     []int     `json:"display_text_range"`
+	Entities             struct {
 		Media []struct {
 			DisplayUrl    string `json:"display_url"`
 			ExpandedUrl   string `json:"expanded_url"`
@@ -238,7 +245,7 @@ type TweetResult struct {
 				} `json:"focus_rects"`
 			} `json:"original_info"`
 		} `json:"media"`
-		UserMentions []interface{} `json:"user_mentions"`
+		UserMentions []ConversationUser `json:"user_mentions"`
 		Urls         []struct {
 			DisplayUrl  string `json:"display_url"`
 			ExpandedUrl string `json:"expanded_url"`
@@ -253,6 +260,17 @@ type TweetResult struct {
 	} `json:"entities"`
 	ExtendedEntities struct {
 		Media []struct {
+			ExtSensitiveMediaWarning struct {
+				AdultContent    bool `json:"adult_content"`
+				GraphicViolence bool `json:"graphic_violence"`
+				Other           bool `json:"other"`
+			} `json:"ext_sensitive_media_warning"`
+			VideoInfo struct {
+				Variants []struct {
+					Bitrate int    `json:"bitrate,omitempty"`
+					Url     string `json:"url"`
+				} `json:"variants"`
+			} `json:"video_info"`
 			DisplayUrl    string `json:"display_url"`
 			ExpandedUrl   string `json:"expanded_url"`
 			ExtAltText    string `json:"ext_alt_text"`
