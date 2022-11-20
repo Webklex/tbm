@@ -238,38 +238,35 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 				userImageFilename := path.Join(a.DataDir, "media", ct.User.RestId+"."+ext)
 
 				_ = a.Scraper.Download(ct.User.Legacy.ProfileImageUrlHttps, userImageFilename)
-				if ct.Tweet.Entities.Media != nil {
-					for _, media := range ct.Tweet.Entities.Media {
-						ext, _ = GetFileExtensionFromUrl(media.MediaUrlHttps)
+
+				for _, tweet := range conversation.GlobalObjects.Tweets {
+					for _, ctm := range tweet.ExtendedEntities.Media {
+						ext, _ = GetFileExtensionFromUrl(ctm.MediaUrlHttps)
 						if ext == "" {
 							ext = "blob"
 						}
-						mediaImageFilename := path.Join(a.DataDir, "media", media.IdStr+"."+ext)
+						mediaImageFilename := path.Join(a.DataDir, "media", ctm.IdStr+"."+ext)
 
-						_ = a.Scraper.Download(media.MediaUrlHttps, mediaImageFilename)
+						_ = a.Scraper.Download(ctm.MediaUrlHttps, mediaImageFilename)
 
-						if tweet, ok := conversation.GlobalObjects.Tweets[ct.Tweet.IdStr]; ok {
-							for _, ctm := range tweet.ExtendedEntities.Media {
-								if ctm.Type == "video" {
-									maxBitrate := 0
-									videoUrl := ""
-									for _, variant := range ctm.VideoInfo.Variants {
-										if variant.Bitrate > maxBitrate {
-											videoUrl = strings.TrimSuffix(variant.URL, "?tag=10")
-											maxBitrate = variant.Bitrate
-										}
-									}
-
-									if videoUrl != "" {
-										ext, _ = GetFileExtensionFromUrl(videoUrl)
-										if ext == "" {
-											ext = "blob"
-										}
-										mediaVideoFilename := path.Join(a.DataDir, "media", media.IdStr+"."+ext)
-
-										_ = a.Scraper.Download(videoUrl, mediaVideoFilename)
-									}
+						if ctm.Type == "video" {
+							maxBitrate := 0
+							videoUrl := ""
+							for _, variant := range ctm.VideoInfo.Variants {
+								if variant.Bitrate > maxBitrate {
+									videoUrl = strings.TrimSuffix(variant.Url, "?tag=10")
+									maxBitrate = variant.Bitrate
 								}
+							}
+
+							if videoUrl != "" {
+								ext, _ = GetFileExtensionFromUrl(videoUrl)
+								if ext == "" {
+									ext = "blob"
+								}
+								mediaVideoFilename := path.Join(a.DataDir, "media", ctm.IdStr+"."+ext)
+
+								_ = a.Scraper.Download(videoUrl, mediaVideoFilename)
 							}
 						}
 					}

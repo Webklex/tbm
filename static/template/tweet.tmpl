@@ -1,0 +1,49 @@
+{{define "tweet"}}
+{{$state := GetState}}
+<div class="w-full pt-4 flex flex-wrap">
+    <div class="border border-solid border-1 border-slate-600 py-2 px-2 flex flex-wrap rounded w-full">
+        <div class="w-auto pr-2">
+            <a href="https://twitter.com/{{$.User.ScreenName}}" target="_blank" rel="noreferrer">
+                <img class="rounded-full" src="/media/{{$.User.IdStr}}" style="width: 46px"
+                     alt=""/>
+            </a>
+        </div>
+        <div class="grow">
+            <a href="https://twitter.com/{{$.User.ScreenName}}" class="break-words" target="_blank" rel="noreferrer">
+                <span>{{$.User.Name}}</span>
+                <br/>
+                <span class="text-xs text-slate-400">
+                                        @{{$.User.ScreenName}}
+                                    </span>
+            </a>
+        </div>
+        <div class="w-full pt-2 break-words status-content" style="font-family: monospace">
+            {{html $.Tweet.FullText}}
+        </div>
+        <div class="w-full">
+            {{range $.Tweet.ExtendedEntities.Media}}
+                {{$mediaUrl := (print "/media/" .IdStr)}}
+                {{if ne $state.mode "offline"}}
+                    {{$mediaUrl = .MediaUrlHttps}}
+                {{end}}
+                {{if eq .Type "video"}}
+                    {{if ne $state.mode "offline"}}
+                        {{range .VideoInfo.Variants}}{{$mediaUrl = .Url}}{{end}}
+                    {{else}}
+                        {{$mediaUrl = (print "/video/" .IdStr)}}
+                    {{end}}
+                    <a href="{{$mediaUrl}}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/{{.IdStr}}" rel="noreferrer" alt=""/></a>
+                {{else}}
+                    <a href="{{$mediaUrl}}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/{{.IdStr}}" rel="noreferrer" alt=""/></a>
+                {{end}}
+            {{end}}
+        </div>
+        <div class="w-1/2 text-xs text-slate-400 pt-2" title="Tweet ID">
+               {{$.Tweet.IdStr}}
+        </div>
+        <div class="w-1/2 text-xs text-right text-slate-400 pt-2">
+            {{$.Tweet.CreatedAt}}
+        </div>
+    </div>
+</div>
+{{end}}

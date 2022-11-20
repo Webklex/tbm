@@ -5,14 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/microcosm-cc/bluemonday"
+	"html/template"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"tbm/scraper"
 	"time"
 )
 
@@ -22,9 +27,15 @@ type Server struct {
 
 	websocketHub *WebsocketHub
 	assets       embed.FS
+	template     *template.Template
 	mediaDir     string
 	state        map[string]interface{}
 	mx           sync.RWMutex
+}
+
+type ThreadItem struct {
+	Tweet scraper.TweetResult
+	User  scraper.ConversationUser
 }
 
 func NewServer(mcb func(message *Message), assets embed.FS) *Server {
@@ -40,64 +51,151 @@ func NewServer(mcb func(message *Message), assets embed.FS) *Server {
 	return a
 }
 
-func (a *Server) Load(mediaDir string) {
-	a.mediaDir = mediaDir
-	a.setRoutes()
+func (s *Server) Load(mediaDir string) {
+	s.mediaDir = mediaDir
+	s.setRoutes()
 }
 
-func (a *Server) SetState(state map[string]interface{}) {
-	a.mx.Lock()
-	defer a.mx.Unlock()
+func (s *Server) SetState(state map[string]interface{}) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
 
-	a.state = state
+	s.state = state
 }
 
-func (a *Server) AddState(key string, value interface{}) {
-	a.mx.Lock()
-	defer a.mx.Unlock()
+func (s *Server) AddState(key string, value interface{}) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
 
-	a.state[key] = value
+	s.state[key] = value
 }
 
-func (a *Server) GetState() map[string]interface{} {
-	a.mx.RLock()
-	defer a.mx.RUnlock()
-
-	return a.state
+func (s *Server) renderHtml(str string) template.HTML {
+	return template.HTML(str)
 }
 
-func (a *Server) setRoutes() {
-	var staticFS = fs.FS(a.assets)
-	htmlContent, err := fs.Sub(staticFS, "public")
+func (s *Server) GetState() map[string]interface{} {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+
+	return s.state
+}
+
+func (s *Server) setRoutes() {
+	var staticFS = fs.FS(s.assets)
+	htmlContent, err := fs.Sub(staticFS, "static/public")
 	if err != nil {
 		log.Fatal(err)
+	}
+	templates, err := fs.Sub(staticFS, "static/template")
+
+	tmpl := template.New("")
+	tmpl.Funcs(template.FuncMap{
+		"html":     s.renderHtml,
+		"GetState": s.GetState,
+	})
+
+	tmpl, err = tmpl.ParseFS(templates, "*.tmpl")
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		s.template = tmpl
 	}
 
 	// Serve static files
 	http.Handle("/", http.FileServer(http.FS(htmlContent)))
-	http.HandleFunc("/ws", a.websocketEndpoint)
-	http.HandleFunc("/media/", a.mediaEndpoint)
-	http.HandleFunc("/video/", a.videoEndpoint)
-	http.HandleFunc("/state", a.stateEndpoint)
+	http.HandleFunc("/ws", s.websocketEndpoint)
+	http.HandleFunc("/media/", s.mediaEndpoint)
+	http.HandleFunc("/video/", s.videoEndpoint)
+	http.HandleFunc("/state", s.stateEndpoint)
+	http.HandleFunc("/thread/", s.threadEndpoint)
 }
 
-func (a *Server) Start() error {
-	fmt.Println("Listening on: http://" + a.Address())
-	go a.websocketHub.run()
+func (s *Server) Start() error {
+	fmt.Println("Listening on: http://" + s.Address())
+	go s.websocketHub.run()
 
-	return http.ListenAndServe(a.Address(), nil)
+	return http.ListenAndServe(s.Address(), nil)
 }
 
-func (a *Server) Address() string {
-	return fmt.Sprintf("%s:%d", a.Host, a.Port)
+func (s *Server) Address() string {
+	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
 
-func (a *Server) Hub() *WebsocketHub {
-	return a.websocketHub
+func (s *Server) Hub() *WebsocketHub {
+	return s.websocketHub
 }
 
-func (a *Server) stateEndpoint(w http.ResponseWriter, r *http.Request) {
-	b, err := json.Marshal(a.GetState())
+func (s *Server) threadEndpoint(w http.ResponseWriter, r *http.Request) {
+	_statusId, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/thread/"))
+	if _statusId > 0 {
+		filename := path.Join(path.Dir(s.mediaDir), fmt.Sprintf("%d.json", _statusId))
+		dat, err := os.ReadFile(filename)
+		if err == nil {
+			cache := &scraper.CachedTweet{}
+			if err := json.Unmarshal(dat, cache); err == nil {
+				if tmpl := s.template.Lookup("thread"); tmpl != nil {
+					title := bluemonday.StripTagsPolicy().Sanitize(cache.Tweet.FullText)
+					if len(title) > 16 {
+						title = title[0:13] + "..."
+					}
+
+					thread := map[string]*ThreadItem{}
+
+					for tweetId, tweet := range cache.Conversation.GlobalObjects.Tweets {
+						user, ok := cache.Conversation.GlobalObjects.Users[tweet.UserIdStr]
+						if !ok {
+							user = scraper.ConversationUser{}
+						}
+
+						for _, hashtag := range tweet.Entities.Hashtags {
+							re := regexp.MustCompile(`#` + hashtag.Text + `( |$)`)
+							tweet.FullText = re.ReplaceAllString(tweet.FullText, `<a class="text-teal-500" href="https://twitter.com/hashtag/`+hashtag.Text+`" target="_blank" rel="noreferrer">#`+hashtag.Text+`</a> `)
+						}
+						for _, mention := range tweet.Entities.UserMentions {
+							re := regexp.MustCompile(`@` + mention.ScreenName + `( |$)`)
+							tweet.FullText = re.ReplaceAllString(tweet.FullText, `<a class="text-teal-600" href="https://twitter.com/`+mention.ScreenName+`" target="_blank" rel="noreferrer">@`+mention.ScreenName+`</a> `)
+						}
+						for _, _url := range tweet.Entities.Urls {
+							tweet.FullText = strings.ReplaceAll(tweet.FullText, _url.Url, `<a class="text-yellow-600" href="`+_url.ExpandedUrl+`" target="_blank" rel="noreferrer">`+_url.ExpandedUrl+`</a>`)
+						}
+						for _, _url := range tweet.Entities.Media {
+							tweet.FullText = strings.ReplaceAll(tweet.FullText, _url.Url, ``)
+						}
+
+						thread[tweetId] = &ThreadItem{
+							Tweet: tweet,
+							User:  user,
+						}
+					}
+
+					if err := tmpl.Execute(w, map[string]interface{}{
+						"State":      s.state,
+						"Title":      title,
+						"Thread":     thread,
+						"Tweet":      cache.Tweet,
+						"User":       cache.User,
+						"TweetIndex": cache.Index,
+					}); err != nil {
+						fmt.Println(err.Error())
+					}
+					return
+				} else {
+					fmt.Println("template not found")
+				}
+			} else {
+				fmt.Println(err.Error())
+			}
+		} else {
+			fmt.Println(err.Error())
+		}
+	}
+
+	http.Error(w, "404 status not found", http.StatusNotFound)
+}
+
+func (s *Server) stateEndpoint(w http.ResponseWriter, r *http.Request) {
+	b, err := json.Marshal(s.GetState())
 	if err != nil {
 		http.Error(w, "500 invalid configuration", http.StatusInternalServerError)
 		return
@@ -106,7 +204,7 @@ func (a *Server) stateEndpoint(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(b)
 }
 
-func (a *Server) videoEndpoint(w http.ResponseWriter, r *http.Request) {
+func (s *Server) videoEndpoint(w http.ResponseWriter, r *http.Request) {
 	_mediaId, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/video/"))
 	if _mediaId <= 0 {
 		// not found
@@ -116,7 +214,7 @@ func (a *Server) videoEndpoint(w http.ResponseWriter, r *http.Request) {
 	mediaId := fmt.Sprintf("%d", _mediaId)
 	mediaFilename := ""
 
-	_ = filepath.Walk(a.mediaDir, func(mediaFilepath string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(s.mediaDir, func(mediaFilepath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -149,7 +247,7 @@ func (a *Server) videoEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *Server) mediaEndpoint(w http.ResponseWriter, r *http.Request) {
+func (s *Server) mediaEndpoint(w http.ResponseWriter, r *http.Request) {
 	_mediaId, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/media/"))
 	if _mediaId <= 0 {
 		// not found
@@ -159,7 +257,7 @@ func (a *Server) mediaEndpoint(w http.ResponseWriter, r *http.Request) {
 	mediaId := fmt.Sprintf("%d", _mediaId)
 	mediaFilename := ""
 
-	_ = filepath.Walk(a.mediaDir, func(mediaFilepath string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(s.mediaDir, func(mediaFilepath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -192,15 +290,15 @@ func (a *Server) mediaEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *Server) websocketEndpoint(w http.ResponseWriter, r *http.Request) {
+func (s *Server) websocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Printf("failed to upgrade websocket connection: %s\n", err.Error())
 		return
 	}
-	client := &WebsocketClient{hub: a.websocketHub, conn: conn, send: make(chan []byte, maxMessageSize)}
-	a.websocketHub.register <- client
+	client := &WebsocketClient{hub: s.websocketHub, conn: conn, send: make(chan []byte, maxMessageSize)}
+	s.websocketHub.register <- client
 
 	go client.writePump()
 	go client.readPump()

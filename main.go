@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//go:embed public
+//go:embed static
 var staticFiles embed.FS
 
 var buildNumber string

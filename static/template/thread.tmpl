@@ -1,0 +1,27 @@
+{{define "thread"}}
+{{template "header" .}}
+<div class="flex justify-center">
+    <div class="container bg-slate-800 py-4 px-4">
+        <div class="flex flex-wrap w-full">
+            <div class="w-full">
+                <a href="/" class="text-4xl font-bold text-yellow-500">Twitter Bookmark Manager</a>
+            </div>
+
+            <div class="w-full" id="error-holder"></div>
+
+            {{range $key, $item := .Thread }}
+                {{if eq $key $.Tweet.IdStr }}
+                    <div class="w-full ">
+                        {{template "tweet" $item}}
+                    </div>
+                {{else}}
+                    <div class="w-full px-8 ">
+                        {{template "tweet" $item}}
+                    </div>
+                {{end}}
+            {{end}}
+        </div>
+    </div>
+</div>
+{{template "footer"}}
+{{end}}
