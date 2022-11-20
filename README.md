@@ -121,10 +121,11 @@ Search for tweets containing the search query:
 By default all assets (.js, .css, .html, etc) get included while building a new version.
 
 ### Structure:
-- gui
-  - css
-    - tailwind.css
-- public
+- static
+  - assets
+    - css
+      - tailwind.css
+  - template
   - css
     - tailwind.css (compiled tailwind css)
     - style.css (custom styling)
