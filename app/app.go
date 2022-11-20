@@ -280,10 +280,25 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 			fmt.Printf("Failed to save tweet data: %s\n", err.Error())
 			return false
 		} else {
+			if a.Danger.RemoveBookmarks {
+				r, err := a.Scraper.DeleteBookmarkDetail(ct.Tweet.IdStr)
+				if err != nil {
+					fmt.Printf("Failed to remove remote bookmark: %s\n", err.Error())
+				} else if r.Data.TweetBookmarkDelete != "Done" {
+					fmt.Printf("failed to remove remote bookmark: %s\n", ct.Tweet.IdStr)
+				} else {
+					fmt.Printf("Bookmark removed: %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
+				}
+			}
+
 			fmt.Printf("New tweet fetched: %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 		}
 	}
 	return true
+}
+
+func (a *Application) GetTweets() []*scraper.CachedTweet {
+	return a.tweets
 }
 
 func GetFileExtensionFromUrl(rawUrl string) (string, error) {

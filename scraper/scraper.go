@@ -220,16 +220,6 @@ func (s *Scraper) run(removeBookmarks bool, attempts ...int) {
 				}) == false {
 					return
 				}
-				if removeBookmarks {
-					r, err := s.DeleteBookmarkDetail(entry.Content.ItemContent.TweetResults.Result.Legacy.IdStr)
-					if err != nil {
-						attempts = append(attempts, 1)
-						go s.run(removeBookmarks, attempts...)
-						return
-					} else if r.Data.TweetBookmarkDelete != "Done" {
-						fmt.Printf("failed to remove bookmark: %s", entry.Content.ItemContent.TweetResults.Result.Legacy.IdStr)
-					}
-				}
 			case "TimelineTimelineCursor":
 				//Cursor
 				if entry.Content.CursorType == "Bottom" {
