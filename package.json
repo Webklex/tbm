@@ -1,7 +1,7 @@
 {
   "name": "tbm",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.1.0",
+  "description": "Fetch all your bookmarked tweets and make them accessible through a webinterface.",
   "dependencies": {
     "autoprefixer": "^10.4.8",
     "postcss": "^8.4.16",
@@ -12,6 +12,6 @@
     "build": "tailwindcss build static/assets/css/tailwind.css -o static/public/css/tailwind.css",
     "watch": "tailwindcss build static/assets/css/tailwind.css -o static/public/css/tailwind.css -w"
   },
-  "author": "",
+  "author": "Webklex",
   "license": "MIT"
 }
