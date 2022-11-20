@@ -39,7 +39,8 @@
             {{end}}
         </div>
         <div class="w-1/2 text-xs text-slate-400 pt-2" title="Tweet ID">
-               {{$.Tweet.IdStr}}
+            <a href="https://twitter.com/{{$.User.ScreenName}}/status/{{$.Tweet.IdStr}}" class="text-yellow-600" target="_blank" rel="noreferrer">{{$.Tweet.IdStr}}</a>
+
         </div>
         <div class="w-1/2 text-xs text-right text-slate-400 pt-2">
             {{$.Tweet.CreatedAt}}
