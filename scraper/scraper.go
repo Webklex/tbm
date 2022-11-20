@@ -29,6 +29,7 @@ type Scraper struct {
 
 	mx         sync.RWMutex
 	close      chan bool
+	running    bool
 	OnNewTweet func(ct *CachedTweet) bool `json:"-"`
 
 	Delay       time.Duration `json:"-"`
@@ -49,6 +50,7 @@ func NewScraper() *Scraper {
 		AccessToken: "",
 		csrfToken:   "",
 		Cookie:      "",
+		running:     false,
 		Sections: Sections{
 			Index:  "BvX-1Exs_MDBeKAedv2T_w",
 			Remove: "Wlmlj2-xzyS1GN3a6cj-mQ",
@@ -91,7 +93,7 @@ func NewScraper() *Scraper {
 func (s *Scraper) Start(removeBookmarks bool) {
 	s.LoadCsrfToken()
 
-	go s.run(removeBookmarks)
+	go s.Run(removeBookmarks)
 	s.close = make(chan bool)
 
 	ticker := time.NewTicker(FetchInterval)
@@ -99,7 +101,7 @@ func (s *Scraper) Start(removeBookmarks bool) {
 		for {
 			select {
 			case <-ticker.C:
-				s.run(removeBookmarks)
+				s.Run(removeBookmarks)
 			case <-s.close:
 				ticker.Stop()
 				return
@@ -154,10 +156,17 @@ func (s *Scraper) buildUrl() string {
 	)
 }
 
-func (s *Scraper) run(removeBookmarks bool, attempts ...int) {
+func (s *Scraper) Run(keepCursor bool) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
+	if s.running {
+		return
+	}
+	s.running = true
+	s.run(keepCursor)
+}
 
+func (s *Scraper) run(keepCursor bool, attempts ...int) {
 	if len(attempts) > 10 {
 		fmt.Printf("api failed to many times: skipping request\n")
 		return
@@ -204,11 +213,12 @@ func (s *Scraper) run(removeBookmarks bool, attempts ...int) {
 		fmt.Printf("attempting to call the failed request again...\n")
 
 		attempts = append(attempts, 1)
-		go s.run(removeBookmarks, attempts...)
+		go s.run(keepCursor, attempts...)
 		return
 	}
 
 	cursor := ""
+	count := 0
 	for _, instruction := range rb.Data.BookmarkTimeline.Timeline.Instructions {
 		for _, entry := range instruction.Entries {
 			switch entry.Content.EntryType {
@@ -220,6 +230,7 @@ func (s *Scraper) run(removeBookmarks bool, attempts ...int) {
 				}) == false {
 					return
 				}
+				count++
 			case "TimelineTimelineCursor":
 				//Cursor
 				if entry.Content.CursorType == "Bottom" {
@@ -229,18 +240,32 @@ func (s *Scraper) run(removeBookmarks bool, attempts ...int) {
 		}
 	}
 
-	if cursor != "" {
-		if removeBookmarks {
-			cursor = ""
+	if keepCursor {
+		if c, ok := s.variables["count"].(int); ok && c <= count {
+			go s.run(keepCursor)
+		} else {
+			go func() {
+				s.mx.Lock()
+				defer s.mx.Unlock()
+				s.running = false
+			}()
 		}
+	} else if cursor != "" {
 		s.variables["cursor"] = cursor
-		go s.run(removeBookmarks)
+		go s.run(keepCursor)
+	} else {
+		go func() {
+			s.mx.Lock()
+			defer s.mx.Unlock()
+			s.running = false
+		}()
 	}
 }
 
 func (s *Scraper) Download(src, target string) error {
 	b, err := s.Get(src)
 	if err != nil {
+		fmt.Printf("twitter: could not read response body: %s\n", err)
 		return err
 	}
 
@@ -348,7 +373,6 @@ func (s *Scraper) TweetDetail(id string) (*ConversationResponse, error) {
 	}
 	v := &ConversationResponse{}
 	if err := json.Unmarshal(b, v); err != nil {
-		fmt.Printf("twitter: could not read response body: %s\n", err)
 		return nil, err
 	}
 	return v, nil
