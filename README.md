@@ -37,7 +37,7 @@ You can get both by the following steps:
   -config string
         Application config file (default "./config/config.json")
   -offline
-        Don't fetch any new bookmarks and link to local files only
+        Don't fetch new bookmarks; link to local files only
   -access-token string
         Twitter bearer access token
   -cookie string
