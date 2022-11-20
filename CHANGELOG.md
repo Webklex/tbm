@@ -7,7 +7,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ## [UNRELEASED]
 ### Fixed
-- NaN
+- Prevent multiple parallel runners
 
 ### Added
 - Offline mode support added (load everything from local sources)
