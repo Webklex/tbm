@@ -613,6 +613,14 @@ video {
   width: 50%;
 }
 
+.w-55\/100 {
+  width: 55%;
+}
+
+.w-45\/100 {
+  width: 45%;
+}
+
 .grow {
   flex-grow: 1;
 }

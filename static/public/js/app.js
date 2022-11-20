@@ -71,11 +71,11 @@
             return `<a href="${url}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/${ht.id_str}" rel="noreferrer" alt=""/></a>`;
         })?.join(" ") ?? ""}
     </div>
-    ${threadLength > 1 ? `<div class="w-full pt-2"><a href="/thread/${tweet.id_str}" class="text-teal-600" target="_blank" rel="noreferrer">> Thread +${threadLength}</a></div>` : ""}
-    <div class="w-1/2 text-xs text-slate-400 pt-2" title="Tweet ID">
-        <a href="https://twitter.com/${user.legacy.screen_name}/status/${tweet.id_str}" class="text-yellow-600" target="_blank" rel="noreferrer">${tweet.id_str}</a>
+    ${threadLength > 1 ? `<div class="w-full pt-2"><a href="/thread/${tweet.id_str}" class="text-teal-600" target="_blank" rel="noreferrer">🧵 thread (${threadLength})</a></div>` : ""}
+    <div class="w-55/100 text-xs text-slate-400 pt-2" title="Tweet ID">
+        <a href="https://twitter.com/${user.legacy.screen_name}/status/${tweet.id_str}" class="text-yellow-600" target="_blank" rel="noreferrer">🐦 ${tweet.id_str}</a>
     </div>
-    <div class="w-1/2 text-xs text-right text-slate-400 pt-2">
+    <div class="w-45/100 text-xs text-right text-slate-400 pt-2">
         ${tweetDate}
     </div>
 </div>`
