@@ -293,6 +293,8 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 
 			fmt.Printf("New tweet fetched: %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 		}
+	} else {
+		fmt.Printf("Tweet skipped (already fetched): %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 	}
 	return true
 }
