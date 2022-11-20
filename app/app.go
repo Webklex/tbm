@@ -59,7 +59,7 @@ func NewApplication(assets embed.FS) *Application {
 	a := &Application{
 		Timezone:       "UTC",
 		DataDir:        path.Join(dir, "data"),
-		ConfigFileName: path.Join(dir, "config", "config.json"),
+		ConfigFileName: path.Join(dir, "config.json"),
 		Scraper:        scraper.NewScraper(),
 		tweets:         make([]*scraper.CachedTweet, 0),
 		bookmarkIndex:  1000000,

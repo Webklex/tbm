@@ -41,7 +41,7 @@ You can get both by the following steps:
 
 ```bash
   -config string
-        Application config file (default "./config/config.json")
+        Application config file (default "./config.json")
   -offline
         Don't fetch new bookmarks; link to local files only
   -access-token string
