@@ -66,6 +66,10 @@ You can get both by the following steps:
         Application time zone (default "UTC")
   -danger-remove-bookmarks
         Remove the bookmark on Twitter if the tweet has been downloaded
+  -log int
+        Set the log mode (0 = all, 1 = success, 2 = warning, 3 = statistic, 4 = error)
+  -no-color
+        Disable color output
   -version
         Show version and exit
   -help

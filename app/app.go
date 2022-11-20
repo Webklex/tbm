@@ -4,7 +4,6 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"tbm/scraper"
 	"tbm/server"
 	"tbm/utils/filesystem"
+	"tbm/utils/log"
 	"time"
 )
 
@@ -162,7 +162,7 @@ func (a *Application) websocketCallback(m *server.Message) {
 	if b, err := r.Encode(); err == nil {
 		m.Client.Send(b)
 	} else {
-		fmt.Printf("failed to encode response: %s\n", err.Error())
+		log.Error("failed to encode response: %s", err.Error())
 	}
 }
 
@@ -201,14 +201,14 @@ func (a *Application) searchTweets(t *Task, r *Response) {
 
 func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 	if ct.Tweet.IdStr == "" {
-		fmt.Printf("empty tweet id. Probably got deleted at some point\n")
+		log.Info("Empty tweet id. Probably got deleted at some point")
 		return true
 	}
 	filename := path.Join(a.DataDir, ct.Tweet.IdStr+".json")
 	if filesystem.Exist(filename) == false {
 		conversation, err := a.Scraper.TweetDetail(ct.Tweet.IdStr)
 		if err != nil {
-			fmt.Printf("failed to fetch conversation %s: %s\n", ct.Tweet.IdStr, err.Error())
+			log.Error("Failed to fetch conversation %s: %s", ct.Tweet.IdStr, err.Error())
 			return false
 		}
 
@@ -271,28 +271,28 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 				if b, e := r.Encode(); e == nil {
 					a.Server.Hub().Broadcast(b)
 				} else {
-					fmt.Printf("failed to encode response: %s\n", e.Error())
+					log.Error("Failed to encode response: %s", err.Error())
 					return false
 				}
 			}
 		}
 
 		if err != nil {
-			fmt.Printf("Failed to save tweet data: %s\n", err.Error())
+			log.Error("Failed to save tweet data: %s", err.Error())
 			return false
 		} else {
 			if a.Danger.RemoveBookmarks {
 				r, err := a.Scraper.DeleteBookmarkDetail(ct.Tweet.IdStr)
 				if err != nil {
-					fmt.Printf("Failed to remove remote bookmark: %s\n", err.Error())
+					log.Error("Failed to remove remote bookmark %s: %s", ct.Tweet.IdStr, err.Error())
 				} else if r.Data.TweetBookmarkDelete != "Done" {
-					fmt.Printf("failed to remove remote bookmark: %s\n", ct.Tweet.IdStr)
+					log.Info("Bookmark %s was already removed", ct.Tweet.IdStr)
 				} else {
-					fmt.Printf("Bookmark removed: %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
+					log.Success("Bookmark removed: %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 				}
 			}
 
-			fmt.Printf("New tweet fetched: %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
+			log.Success("New tweet fetched: %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 		}
 	}
 	return true

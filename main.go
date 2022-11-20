@@ -4,9 +4,11 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+	"github.com/fatih/color"
 	"math/rand"
 	"os"
 	"tbm/app"
+	"tbm/utils/log"
 	"time"
 )
 
@@ -34,9 +36,16 @@ func main() {
 	flag.DurationVar(&a.Scraper.Delay, "delay", a.Scraper.Delay, "Delay your request by a given time")
 	flag.BoolVar(&a.Danger.RemoveBookmarks, "danger-remove-bookmarks", a.Danger.RemoveBookmarks, "Remove the bookmark on Twitter if the tweet has been downloaded")
 
+	flag.IntVar(&log.Mode, "log", log.Mode, "Set the log mode (0 = all, 1 = success, 2 = warning, 3 = statistic, 4 = error)")
+
 	sv := flag.Bool("version", false, "Show version and exit")
+	nc := flag.Bool("no-color", false, "Disable color output")
 	offline := flag.Bool("offline", false, "Don't fetch new bookmarks; link to local files only")
 	flag.Parse()
+
+	if *nc {
+		color.NoColor = true // disables colorized output
+	}
 
 	a.Build = app.Build{
 		Number:  buildNumber,
@@ -44,21 +53,20 @@ func main() {
 	}
 
 	if *sv {
-		fmt.Printf("Version: %s\n", a.Build.Version)
-		fmt.Printf("Build number: %s\n", a.Build.Number)
-		return
+		fmt.Printf("version: %s\nbuild number: %s\n", color.CyanString(buildVersion), color.CyanString(buildNumber))
+		os.Exit(0)
 	}
 	if *offline {
 		a.Mode = app.OfflineMode
 	}
 
 	if err := a.Load(); err != nil {
-		fmt.Printf("Failed to load the config file: %s\n", err.Error())
+		log.Error("Failed to load the config file: %s", err.Error())
 		os.Exit(2) // No such file or directory
 	}
 
 	if err := a.Start(); err != nil {
-		fmt.Printf("Failed to start the application: %s\n", err.Error())
+		log.Error("Failed to start the application: %s", err.Error())
 		os.Exit(131) // State not recoverable
 	}
 

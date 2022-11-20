@@ -8,7 +8,6 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	"html/template"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -18,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"tbm/scraper"
+	"tbm/utils/log"
 	"time"
 )
 
@@ -112,7 +112,7 @@ func (s *Server) setRoutes() {
 }
 
 func (s *Server) Start() error {
-	fmt.Println("Listening on: http://" + s.Address())
+	log.Info("Listening on: http://%s", s.Address())
 	go s.websocketHub.run()
 
 	return http.ListenAndServe(s.Address(), nil)
@@ -177,17 +177,17 @@ func (s *Server) threadEndpoint(w http.ResponseWriter, r *http.Request) {
 						"User":       cache.User,
 						"TweetIndex": cache.Index,
 					}); err != nil {
-						fmt.Println(err.Error())
+						log.Error("Failed to serve tweet %d: %s", _statusId, err.Error())
 					}
 					return
 				} else {
-					fmt.Println("template not found")
+					log.Error("Template not found")
 				}
 			} else {
-				fmt.Println(err.Error())
+				log.Error("Failed to serve tweet %d: %s", _statusId, err.Error())
 			}
 		} else {
-			fmt.Println(err.Error())
+			log.Error("Failed to serve tweet %d: %s", _statusId, err.Error())
 		}
 	}
 
@@ -294,7 +294,7 @@ func (s *Server) websocketEndpoint(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Printf("failed to upgrade websocket connection: %s\n", err.Error())
+		log.Error("Failed to upgrade websocket connection: %s", err.Error())
 		return
 	}
 	client := &WebsocketClient{hub: s.websocketHub, conn: conn, send: make(chan []byte, maxMessageSize)}

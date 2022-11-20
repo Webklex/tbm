@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"tbm/utils/log"
 	"time"
 )
 
@@ -166,15 +167,15 @@ func (s *Scraper) Run(keepCursor bool) {
 	s.run(keepCursor)
 }
 
-func (s *Scraper) run(keepCursor bool, attempts ...int) {
+func (s *Scraper) run(keepCursor bool, attempts ...error) {
 	if len(attempts) > 10 {
-		fmt.Printf("api failed to many times: skipping request\n")
+		log.Error("Api failed to many times: %s", attempts[len(attempts)-1].Error())
 		return
 	}
 
 	req, err := http.NewRequest("GET", s.buildUrl(), nil)
 	if err != nil {
-		fmt.Printf("client: error making http request: %s\n", err)
+		log.Error("client: error making http request: %s", err.Error())
 		return
 	}
 	req.Header.Set("Cookie", s.Cookie)
@@ -186,33 +187,32 @@ func (s *Scraper) run(keepCursor bool, attempts ...int) {
 	s.lastRequest = time.Now()
 
 	if err != nil {
-		fmt.Printf("client: error making http request: %s\n", err)
+		log.Error("client: error sending http request: %s", err.Error())
 		return
 	}
 
 	if res.StatusCode != 200 {
-		fmt.Printf("twitter: failed to fetch response body: %d\n", res.StatusCode)
+		log.Error("twitter: failed to fetch response body: %s", res.Status)
 		return
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Printf("client: could not read response body: %s\n", err)
+		log.Error("client: could not read response body: %s", err)
 		return
 	}
 
 	rb := &BookmarkResponse{}
 	if err := json.Unmarshal(resBody, rb); err != nil {
-		fmt.Printf("twitter: could not read response body: %s\n", err)
+		log.Error("client: could not unmarshal response body: %s", err)
 		return
 	}
 
 	if len(rb.Errors) > 0 {
 		err := rb.Errors[0]
-		fmt.Printf("twitter: api error at curser \"%s\" with %s\n", s.variables["cursor"], err.Message)
-		fmt.Printf("attempting to call the failed request again...\n")
+		log.Warning("twitter: api error at cursor \"%s\" with %s", s.variables["cursor"], err.Message)
 
-		attempts = append(attempts, 1)
+		attempts = append(attempts, errors.New(err.Message))
 		go s.run(keepCursor, attempts...)
 		return
 	}
@@ -265,7 +265,7 @@ func (s *Scraper) run(keepCursor bool, attempts ...int) {
 func (s *Scraper) Download(src, target string) error {
 	b, err := s.Get(src)
 	if err != nil {
-		fmt.Printf("twitter: could not read response body: %s\n", err)
+		log.Error("twitter: could not read response body: %s", err)
 		return err
 	}
 
@@ -312,7 +312,6 @@ func (s *Scraper) DeleteBookmarkDetail(id string) (*RemoveBookmarkResponse, erro
 	}
 	v := &RemoveBookmarkResponse{}
 	if err := json.Unmarshal(rb, v); err != nil {
-		fmt.Printf("twitter: could not read response body: %s\n", err)
 		return nil, err
 	}
 

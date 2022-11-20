@@ -1,9 +1,8 @@
 package server
 
 import (
-	"fmt"
 	"github.com/gorilla/websocket"
-	"log"
+	"tbm/utils/log"
 	"time"
 )
 
@@ -50,7 +49,7 @@ func (c *WebsocketClient) readPump() {
 	c.conn.SetReadLimit(maxMessageSize)
 
 	if err := c.conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
-		fmt.Printf("failed to set websocket deadline: %s\n", err.Error())
+		log.Error("Failed to set websocket deadline: %s", err.Error())
 		return
 	}
 	c.conn.SetPongHandler(func(string) error { return c.conn.SetReadDeadline(time.Now().Add(pongWait)) })
@@ -59,7 +58,7 @@ func (c *WebsocketClient) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				log.Error("error: %s", err.Error())
 			}
 			break
 		}
