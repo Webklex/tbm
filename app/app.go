@@ -208,6 +208,7 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 	if filesystem.Exist(filename) == false {
 		conversation, err := a.Scraper.TweetDetail(ct.Tweet.IdStr)
 		if err != nil {
+			fmt.Printf("failed to fetch conversation %s: %s\n", ct.Tweet.IdStr, err.Error())
 			return false
 		}
 
