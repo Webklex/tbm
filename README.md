@@ -30,7 +30,7 @@ You can get both by the following steps:
 1. Login to twitter.com and go to https://twitter.com/i/bookmarks
 2. Press `f12`, switch to the `Network` tab and look for a request named `Bookmarks?variables=%7B%22count%22%3A20..`
 3. Switch to the `Headers` tab if it isn't selected and scroll down to `Request Headers`
-4. Copy the line starting with `cookie: ` and `authorization: Bearer `
+4. Copy the line starting with `cookie: ` and `authorization: Bearer `. Make sure to enclose the entire cookie string in quotes (```"```). Escape possible quotes on key:values pairs inside the cookie as ```\"```.
 5. Check if the `section` has changed (part of the url in front of `Bookmarks?variables=%7B%22count%22%3A20..`), if so copy it as well
 
 ```bash
