@@ -9,8 +9,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "build": "tailwindcss build gui/css/tailwind.css -o public/css/tailwind.css",
-    "watch": "tailwindcss build gui/css/tailwind.css -o public/css/tailwind.css -w"
+    "build": "tailwindcss build static/assets/css/tailwind.css -o static/public/css/tailwind.css",
+    "watch": "tailwindcss build static/assets/css/tailwind.css -o static/public/css/tailwind.css -w"
   },
   "author": "",
   "license": "MIT"

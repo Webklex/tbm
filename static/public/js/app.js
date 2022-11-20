@@ -22,15 +22,16 @@
 
         // Display a new tweet in the first position
         const addTweet = (user, tweet, conversation) => {
+            const threadLength = Object.keys(conversation.globalObjects.tweets).length;
             let content = tweet.full_text;
             tweet.entities.hashtags.map(ht => {
                 content = content.replace(new RegExp(`#${ht.text}( |$)`), `<a class="text-teal-500" href="https://twitter.com/hashtag/${ht.text}" target="_blank" rel="noreferrer">#${ht.text}</a> `)
             }).join(" ")
             tweet.entities.user_mentions.map(ht => {
-                content = content.replace(new RegExp(`@${ht.screen_name}( |$)`), `<a class="text-teal-600" href="https://twitter.com/${ht.screen_name}" target="_blank" rel="noreferrer">@${ht.screen_name}</a>`)
+                content = content.replace(new RegExp(`@${ht.screen_name}( |$)`), `<a class="text-teal-600" href="https://twitter.com/${ht.screen_name}" target="_blank" rel="noreferrer">@${ht.screen_name}</a> `)
             }).join(" ")
             tweet.entities.urls.map(ht => {
-                content = content.replace(`${ht.url}`, `<a class="text-yellow-600" href="${ht.expanded_url}" target="_blank" rel="noreferrer">${ht.expanded_url}</a>`)
+                content = content.replace(`${ht.url}`, `<a class="text-yellow-600" href="${ht.expanded_url}" target="_blank" rel="noreferrer">${ht.expanded_url}</a> `)
             }).join(" ")
             tweet.entities.media?.map(ht => {
                 content = content.replace(`${ht.url}`, ``)
@@ -70,6 +71,7 @@
             return `<a href="${url}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/${ht.id_str}" rel="noreferrer" alt=""/></a>`;
         })?.join(" ") ?? ""}
     </div>
+    ${threadLength > 1 ? `<div class="w-full pt-2"><a href="/thread/${tweet.id_str}" class="text-teal-600" target="_blank" rel="noreferrer">> Thread +${threadLength}</a></div>` : ""}
     <div class="w-1/2 text-xs text-slate-400 pt-2" title="Tweet ID">
         <a href="https://twitter.com/${user.legacy.screen_name}/status/${tweet.id_str}" class="text-yellow-600" target="_blank" rel="noreferrer">${tweet.id_str}</a>
     </div>

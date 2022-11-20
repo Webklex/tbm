@@ -9,8 +9,9 @@ delete colors['blueGray'];
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     content: [
-      './gui/**/*.{html,js}',
-      './public/**/*.{html,js}'
+      './static/assets/**/*.{html,js}',
+      './static/public/**/*.{html,js}',
+      './static/template/*.tmpl'
     ],
     theme: {
         colors: {
