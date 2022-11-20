@@ -90,16 +90,6 @@ resources such as tweets and media files.
 ## Websocket commands
 The websocket can be accessed under `ws://{host}:{port}/ws`.
 
-Set the access token and cookie:
-```json
-{
-  "command":"set_tokens",
-  "payload":{
-    "cookie": "guest_id=...",
-    "access_token": "AAAAA..."
-  }
-}
-```
 Get all tweets:
 ```json
 {

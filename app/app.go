@@ -143,8 +143,6 @@ func (a *Application) websocketCallback(m *server.Message) {
 	}
 
 	switch t.Command {
-	case "set_tokens":
-		a.setTokens(t, r)
 	case "get_tweets":
 		r.Data["tweets"] = a.tweets
 	case "search_tweets":
@@ -190,22 +188,6 @@ func (a *Application) searchTweets(t *Task, r *Response) {
 		r.Data["tweets"] = tweets
 	} else {
 		r.SetErrorStr("query parameter not found")
-	}
-}
-
-func (a *Application) setTokens(t *Task, r *Response) {
-	if accessToken, ok := t.Payload["access_token"]; ok && accessToken != "" {
-		if cookie, ok := t.Payload["cookie"]; ok && cookie != "" {
-			if a.Scraper.SetAccessTokens(accessToken.(string), cookie.(string)) == false {
-				r.SetErrorStr("csrf token could not be found inside the cookie")
-			} else {
-				r.Data["status"] = "OK"
-			}
-		} else {
-			r.SetErrorStr("cookie not found")
-		}
-	} else {
-		r.SetErrorStr("access token not found")
 	}
 }
 
