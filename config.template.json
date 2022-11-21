@@ -10,12 +10,7 @@
     "port": 4788
   },
   "scraper": {
-    "sections": {
-      "index": "BvX-1Exs_MDBeKAedv2T_w",
-      "remove": "Wlmlj2-xzyS1GN3a6cj-mQ"
-    },
     "delay": "30s",
-    "cookie": "",
-    "access_token": ""
+    "cookie": ""
   }
 }

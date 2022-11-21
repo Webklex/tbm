@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"tbm/utils/log"
@@ -53,8 +54,8 @@ func NewScraper() *Scraper {
 		Cookie:      "",
 		running:     false,
 		Sections: Sections{
-			Index:  "BvX-1Exs_MDBeKAedv2T_w",
-			Remove: "Wlmlj2-xzyS1GN3a6cj-mQ",
+			Index:  "",
+			Remove: "",
 		},
 		Delay:       time.Second * 30,
 		Timeout:     time.Second * 10,
@@ -93,6 +94,10 @@ func NewScraper() *Scraper {
 
 func (s *Scraper) Start(removeBookmarks bool) {
 	s.LoadCsrfToken()
+	if err := s.LoadSections(); err != nil {
+		log.Error(err)
+		return
+	}
 
 	go s.Run(removeBookmarks)
 	s.close = make(chan bool)
@@ -134,6 +139,85 @@ func (s *Scraper) LoadCsrfToken() bool {
 		}
 	}
 	return false
+}
+
+func (s *Scraper) LoadSections() error {
+	src := "https://twitter.com/i/bookmarks"
+	req, err := http.NewRequest("GET", src, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Cookie", s.Cookie)
+
+	resp, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return errors.New("failed to download resource with \"" + resp.Status + "\" from " + src)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	re := regexp.MustCompile(`https://abs\.twimg\.com/responsive-web/client-web-legacy/main\.([0-9a-zA-Z]*)\.js`)
+	matches := re.FindStringSubmatch(string(b))
+	if len(matches) > 0 {
+		mainJsFile := matches[0]
+
+		req, err = http.NewRequest("GET", mainJsFile, nil)
+		if err != nil {
+			return err
+		}
+
+		resp, err = http.DefaultClient.Do(req)
+
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return errors.New("failed to download resource with \"" + resp.Status + "\" from " + mainJsFile)
+		}
+
+		b, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		jsContent := string(b)
+
+		re = regexp.MustCompile(`AAAAAAAAAAAAAAA([a-zA-Z0-9-_%]*)`)
+		matches = re.FindStringSubmatch(jsContent)
+		if len(matches) > 1 {
+			s.AccessToken = matches[0]
+		} else {
+			return errors.New("failed to locate the access token")
+		}
+
+		re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"Bookmarks"`)
+		matches = re.FindStringSubmatch(jsContent)
+		if len(matches) > 1 {
+			s.Sections.Index = matches[1]
+
+			re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"DeleteBookmark"`)
+			matches = re.FindStringSubmatch(jsContent)
+
+			if len(matches) > 1 {
+				s.Sections.Remove = matches[1]
+			} else {
+				return errors.New("failed to locate bookmark remove section")
+			}
+		} else {
+			return errors.New("failed to locate bookmark index section")
+		}
+	} else {
+		return errors.New("failed to locate main js file")
+	}
+
+	return nil
 }
 
 func (s *Scraper) SetAccessTokens(AccessToken, Cookie string) bool {

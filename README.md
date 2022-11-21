@@ -35,17 +35,13 @@ You can get both by the following steps:
 1. Login to twitter.com and press `f12`, switch to the `Network` tab
 2. Go to https://twitter.com/i/bookmarks and look for a request named `Bookmarks?variables=%7B%22count%22%3A20..` inside your open network tab
 3. Click on the request and switch to the `Headers` tab if it isn't selected and scroll down to `Request Headers`
-4. Copy the line starting with `cookie: ` and `authorization: Bearer `. Make sure to enclose the entire cookie string in quotes (`"`). Escape possible quotes on key:values pairs inside the cookie as `\"`.
-5. (optional - might not be necessary) Check if the `section` has changed (part of the url in front of `Bookmarks?variables=%7B%22count%22%3A20..`), if so copy it as well
-6. (optional - might not be necessary) To retrieve a valid `section` to remove a bookmark, keep the network tab open and remove a dummy bookmark. Look for a `DeleteBookmark` request and copy its `section` part to `sections.remove` or use it as `-remove-section` argument value.
+4. Copy the line starting with `cookie: `. Make sure to enclose the entire cookie string in quotes (`"`). Escape possible quotes on key:values pairs inside the cookie as `\"`.
 
 ```bash
   -config string
         Application config file (default "./config.json")
   -offline
         Don't fetch new bookmarks; link to local files only
-  -access-token string
-        Twitter bearer access token
   -cookie string
         Twitter cookie string
   -data-dir string
@@ -56,10 +52,6 @@ You can get both by the following steps:
         Host address the api should bind to (default "localhost")
   -port uint
         Port the api should bind to (default 4788)
-  -remove-section string
-        Twitter remove bookmark api section name (default "Wlmlj2-xzyS1GN3a6cj-mQ")
-  -index-section string
-        Twitter bookmark api section name (default "BvX-1Exs_MDBeKAedv2T_w")
   -timeout duration
         Request timeout (default 10s)
   -timezone string
@@ -91,13 +83,8 @@ Besides the command arguments, you can also provide a config file:
     "port": 4788
   },
   "scraper": {
-    "sections": {
-      "index": "BvX-1Exs_MDBeKAedv2T_w",
-      "remove": "Wlmlj2-xzyS1GN3a6cj-mQ"
-    },
     "delay": "30s",
-    "cookie": "guest_id=...",
-    "access_token": "AAAAA..."
+    "cookie": "guest_id=..."
   }
 }
 ```

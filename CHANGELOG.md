@@ -18,6 +18,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - (Optional) Remove bookmarked tweets after download using `--danger-remove-bookmarks`
 - Output colors and additional error outputs added
 - Show a skip message for already downloaded tweets #15 (thanks @Wikinaut)
+- Fetch the access token and all required sections automatically
 
 ### Breaking changes
 - Default config location has changed to `config.json`
