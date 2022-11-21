@@ -32,12 +32,12 @@ or clone this repository and [build](#build) it yourself.
 ## Usage
 In order to fetch your bookmarks, you'll have to supply an active access token with a matching cookie. 
 You can get both by the following steps:
-1. Login to twitter.com and go to https://twitter.com/i/bookmarks
-2. Press `f12`, switch to the `Network` tab and look for a request named `Bookmarks?variables=%7B%22count%22%3A20..`
-3. Switch to the `Headers` tab if it isn't selected and scroll down to `Request Headers`
-4. Copy the line starting with `cookie: ` and `authorization: Bearer `. Make sure to enclose the entire cookie string in quotes (```"```). Escape possible quotes on key:values pairs inside the cookie as ```\"```.
-5. Check if the `section` has changed (part of the url in front of `Bookmarks?variables=%7B%22count%22%3A20..`), if so copy it as well
-6. (optional) To retrieve a valid `section` to remove a bookmark, keep the network tab open and remove a dummy bookmark. Look for a `DeleteBookmark` request and copy its `section` part to `sections.remove` or use it as `-remove-section` argument value.
+1. Login to twitter.com and press `f12`, switch to the `Network` tab
+2. Go to https://twitter.com/i/bookmarks and look for a request named `Bookmarks?variables=%7B%22count%22%3A20..` inside your open network tab
+3. Click on the request and switch to the `Headers` tab if it isn't selected and scroll down to `Request Headers`
+4. Copy the line starting with `cookie: ` and `authorization: Bearer `. Make sure to enclose the entire cookie string in quotes (`"`). Escape possible quotes on key:values pairs inside the cookie as `\"`.
+5. (optional - might not be necessary) Check if the `section` has changed (part of the url in front of `Bookmarks?variables=%7B%22count%22%3A20..`), if so copy it as well
+6. (optional - might not be necessary) To retrieve a valid `section` to remove a bookmark, keep the network tab open and remove a dummy bookmark. Look for a `DeleteBookmark` request and copy its `section` part to `sections.remove` or use it as `-remove-section` argument value.
 
 ```bash
   -config string
