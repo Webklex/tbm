@@ -200,10 +200,6 @@ func (a *Application) searchTweets(t *Task, r *Response) {
 }
 
 func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
-	if ct.Tweet.IdStr == "" {
-		log.Info("Empty tweet id. Probably got deleted at some point")
-		return true
-	}
 	filename := path.Join(a.DataDir, ct.Tweet.IdStr+".json")
 	if filesystem.Exist(filename) == false {
 		conversation, err := a.Scraper.TweetDetail(ct.Tweet.IdStr)

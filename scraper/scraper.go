@@ -225,17 +225,27 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 
 	cursor := ""
 	count := 0
+	empty := 0
 	for _, instruction := range rb.Data.BookmarkTimeline.Timeline.Instructions {
 		for _, entry := range instruction.Entries {
 			switch entry.Content.EntryType {
 			case "TimelineTimelineItem":
 				// Tweet
-				if s.OnNewTweet(&CachedTweet{
-					User:  entry.Content.ItemContent.TweetResults.Result.Core.UserResults.Result,
-					Tweet: entry.Content.ItemContent.TweetResults.Result.Legacy,
-				}) == false {
-					go s.run(keepCursor, attempts...)
-					return
+				if entry.Content.ItemContent.TweetResults.Result.Legacy.IdStr == "" {
+					log.Info("Empty tweet id. Probably got deleted at some point")
+					// @TODO: might want to call
+					// 		  s.DeleteBookmarkDetail(entry.Content.ItemContent.TweetResults.Result.RestId)
+					//		  to delete this bookmark - but it might also be a twitter issue and the tweet becomes
+					//		  available at a later point. I'm assuming RestId equals IdStr but I could be wrong..
+					empty++
+				} else {
+					if s.OnNewTweet(&CachedTweet{
+						User:  entry.Content.ItemContent.TweetResults.Result.Core.UserResults.Result,
+						Tweet: entry.Content.ItemContent.TweetResults.Result.Legacy,
+					}) == false {
+						go s.run(keepCursor, attempts...)
+						return
+					}
 				}
 				count++
 			case "TimelineTimelineCursor":
@@ -249,6 +259,9 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 
 	if keepCursor {
 		if c, ok := s.variables["count"].(int); ok && c <= count {
+			if count == empty {
+				s.variables["cursor"] = cursor
+			}
 			go s.run(keepCursor)
 		} else {
 			s.free()
