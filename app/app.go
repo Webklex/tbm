@@ -295,7 +295,7 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 			log.Success("New tweet fetched: %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 		}
 	} else {
-		fmt.Printf("Tweet skipped (already fetched): %s posted on %s\n", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
+		log.Info("Tweet skipped (already fetched): %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 	}
 	return true
 }
