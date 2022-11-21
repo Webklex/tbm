@@ -8,15 +8,17 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ## [UNRELEASED]
 ### Fixed
 - Prevent multiple parallel runners
+- Changed config file location to program basedir #14 (thanks @Wikinaut)
 
 ### Added
 - Offline mode support added (load everything from local sources)
 - Thread view added
 - (Optional) Remove bookmarked tweets after download using `--danger-remove-bookmarks`
 - Output colors and additional error outputs added
+- Show a skip message for already downloaded tweets #15 (thanks @Wikinaut)
 
 ### Breaking changes
-- NaN
+- Default config location has changed to `config.json`
 
 
 ## [1.0.1] - 2022-11-19
