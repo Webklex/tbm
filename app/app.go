@@ -281,9 +281,8 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 			log.Error("Failed to save tweet data: %s", err.Error())
 			return false
 		} else {
-
 			log.Success("New tweet fetched: %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
-	
+
 			if a.Danger.RemoveBookmarks {
 				r, err := a.Scraper.DeleteBookmarkDetail(ct.Tweet.IdStr)
 				if err != nil {
@@ -294,13 +293,9 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 					log.Success("Bookmark removed: %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 				}
 			}
-
 		}
-
 	} else {
-
 		log.Info("Tweet skipped (already fetched): %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
-
 	}
 
 	return true
