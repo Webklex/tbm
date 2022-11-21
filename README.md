@@ -16,10 +16,16 @@ Fetch all your bookmarked tweets and make them accessible through a webinterface
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+  - [Modes](#modes)
 - [Api](#websocket-commands)
 - [Build](#build)
+- [Development](#development)
+  - [Custom Styles](#custom-styles)
+  - [Structure](#structure)
 - [Support](#support)
+- [Change log](#change-log)
 - [Security](#security)
+- [Credits](#credits)
 - [License](#license)
 
 
@@ -129,6 +135,18 @@ go build -ldflags "-w -s -X main.buildNumber=1 -X main.buildVersion=custom" -o t
 ```
 
 
+## Development
+Requirements:
+- `Node` v12.13
+- `Golang` ^1.17.2
+
+```bash
+npm run watch
+npm run build
+go run main.go
+```
+
+
 ## Custom Styles
 By default all assets (.js, .css, .html, etc) get included while building a new version.
 
@@ -145,18 +163,6 @@ By default all assets (.js, .css, .html, etc) get included while building a new 
   - js
     - app.js
   - index.html
-
-
-## Development
-Requirements:
-- `Node` v12.13
-- `Golang` ^1.17.2
-
-```bash
-npm run watch
-npm run build
-go run main.go
-```
 
 
 ## Features & pull requests
