@@ -10,6 +10,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Prevent multiple parallel runners
 - Changed config file location to program basedir #14 (thanks @Wikinaut)
 - Increase bookmark cursor if the count limit is reached
+- Mixed bookmark response type handling
 
 ### Added
 - Offline mode support added (load everything from local sources)

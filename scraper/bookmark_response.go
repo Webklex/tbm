@@ -22,15 +22,8 @@ type BookmarkResponse struct {
 								StopOnEmptyResponse bool   `json:"stopOnEmptyResponse"`
 								TweetResults        struct {
 									Result struct {
-										TypeName string `json:"__typename"`
-										RestId   string `json:"rest_id"`
-										Core     struct {
-											UserResults struct {
-												Result UserResult `json:"result"`
-											} `json:"user_results"`
-										} `json:"core"`
-										UnmentionInfo interface{} `json:"unmention_info"`
-										Legacy        TweetResult `json:"legacy"`
+										TweetResultBlock
+										Tweet TweetResultBlock `json:"tweet"`
 									} `json:"result"`
 								} `json:"tweet_results"`
 								TweetDisplayType string `json:"tweetDisplayType"`
@@ -73,6 +66,18 @@ type BookmarkResponse struct {
 			TraceId string `json:"trace_id"`
 		} `json:"tracing"`
 	} `json:"errors"`
+}
+
+type TweetResultBlock struct {
+	TypeName string `json:"__typename"`
+	RestId   string `json:"rest_id"`
+	Core     struct {
+		UserResults struct {
+			Result UserResult `json:"result"`
+		} `json:"user_results"`
+	} `json:"core"`
+	UnmentionInfo interface{} `json:"unmention_info"`
+	Legacy        TweetResult `json:"legacy"`
 }
 
 type UserResult struct {

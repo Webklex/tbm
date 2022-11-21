@@ -231,17 +231,24 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 			switch entry.Content.EntryType {
 			case "TimelineTimelineItem":
 				// Tweet
-				if entry.Content.ItemContent.TweetResults.Result.Legacy.IdStr == "" {
+				tweet := entry.Content.ItemContent.TweetResults.Result.Legacy
+				user := entry.Content.ItemContent.TweetResults.Result.Core.UserResults.Result
+				if tweet.IdStr == "" {
+					tweet = entry.Content.ItemContent.TweetResults.Result.Tweet.Legacy
+					user = entry.Content.ItemContent.TweetResults.Result.Tweet.Core.UserResults.Result
+				}
+
+				if tweet.IdStr == "" {
 					log.Info("Empty tweet id. Probably got deleted at some point")
 					// @TODO: might want to call
 					// 		  s.DeleteBookmarkDetail(entry.Content.ItemContent.TweetResults.Result.RestId)
 					//		  to delete this bookmark - but it might also be a twitter issue and the tweet becomes
-					//		  available at a later point. I'm assuming RestId equals IdStr but I could be wrong..
+					//		  available at a later point. I'm assuming RestId equals IdStr, but I could be wrong..
 					empty++
 				} else {
 					if s.OnNewTweet(&CachedTweet{
-						User:  entry.Content.ItemContent.TweetResults.Result.Core.UserResults.Result,
-						Tweet: entry.Content.ItemContent.TweetResults.Result.Legacy,
+						User:  user,
+						Tweet: tweet,
 					}) == false {
 						go s.run(keepCursor, attempts...)
 						return
