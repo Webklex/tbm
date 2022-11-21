@@ -170,12 +170,14 @@ func (s *Scraper) Run(keepCursor bool) {
 func (s *Scraper) run(keepCursor bool, attempts ...error) {
 	if len(attempts) > 10 {
 		log.Error("Api failed to many times: %s", attempts[len(attempts)-1].Error())
+		s.free()
 		return
 	}
 
 	req, err := http.NewRequest("GET", s.buildUrl(), nil)
 	if err != nil {
 		log.Error("client: error making http request: %s", err.Error())
+		s.free()
 		return
 	}
 	req.Header.Set("Cookie", s.Cookie)
@@ -188,23 +190,27 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 
 	if err != nil {
 		log.Error("client: error sending http request: %s", err.Error())
+		s.free()
 		return
 	}
 
 	if res.StatusCode != 200 {
 		log.Error("twitter: failed to fetch response body: %s", res.Status)
+		s.free()
 		return
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Error("client: could not read response body: %s", err)
+		s.free()
 		return
 	}
 
 	rb := &BookmarkResponse{}
 	if err := json.Unmarshal(resBody, rb); err != nil {
 		log.Error("client: could not unmarshal response body: %s", err)
+		s.free()
 		return
 	}
 
@@ -228,6 +234,7 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 					User:  entry.Content.ItemContent.TweetResults.Result.Core.UserResults.Result,
 					Tweet: entry.Content.ItemContent.TweetResults.Result.Legacy,
 				}) == false {
+					go s.run(keepCursor, attempts...)
 					return
 				}
 				count++
@@ -244,22 +251,22 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 		if c, ok := s.variables["count"].(int); ok && c <= count {
 			go s.run(keepCursor)
 		} else {
-			go func() {
-				s.mx.Lock()
-				defer s.mx.Unlock()
-				s.running = false
-			}()
+			s.free()
 		}
 	} else if cursor != "" {
 		s.variables["cursor"] = cursor
 		go s.run(keepCursor)
 	} else {
-		go func() {
-			s.mx.Lock()
-			defer s.mx.Unlock()
-			s.running = false
-		}()
+		s.free()
 	}
+}
+
+func (s *Scraper) free() {
+	go func() {
+		s.mx.Lock()
+		defer s.mx.Unlock()
+		s.running = false
+	}()
 }
 
 func (s *Scraper) Download(src, target string) error {
