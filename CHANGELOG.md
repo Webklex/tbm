@@ -7,6 +7,17 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ## [UNRELEASED]
 ### Fixed
+- NaN
+
+### Added
+- NaN
+
+### Breaking changes
+- NaN
+
+
+## [2.0.0] - 2022-11-21
+### Fixed
 - Prevent multiple parallel runners
 - Changed config file location to program basedir #14 (thanks @Wikinaut)
 - Increase bookmark cursor if the count limit is reached
