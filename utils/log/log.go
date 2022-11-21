@@ -33,7 +33,7 @@ func Info(format string, args ...interface{}) {
 // @param format interface{}
 // @param args ...interface{}
 func Error(format interface{}, args ...interface{}) {
-	if Mode <= LogAll || Mode == LogError {
+	if Mode <= LogAll || Mode <= LogError {
 		switch format.(type) {
 		case error:
 			Log(color.FgRed, "error", format.(error).Error(), args...)
@@ -61,7 +61,7 @@ func Fatal(format interface{}, args ...interface{}) {
 // @param format string
 // @param args ...interface{}
 func Warning(format string, args ...interface{}) {
-	if Mode <= LogAll || Mode == LogWarning {
+	if Mode <= LogAll || Mode <= LogWarning {
 		Log(color.FgYellow, "warning", format, args...)
 	}
 }
@@ -72,13 +72,13 @@ func Warning(format string, args ...interface{}) {
 // @param format string
 // @param args ...interface{}
 func Success(format string, args ...interface{}) {
-	if Mode <= LogAll || Mode == LogSuccess {
+	if Mode <= LogAll || Mode <= LogSuccess {
 		Log(color.FgGreen, "success", format, args...)
 	}
 }
 
 func Statistic(format string, args ...interface{}) {
-	if Mode <= LogAll || Mode == LogStatistic {
+	if Mode <= LogAll || Mode <= LogStatistic {
 		Log(color.FgMagenta, "statistic", format, args...)
 	}
 }
