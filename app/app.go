@@ -126,10 +126,10 @@ func (a *Application) LoadTweetCache() {
 		}
 	}
 	sort.Slice(tweets, func(i, j int) bool {
-		// t1, _ := time.Parse("Mon Jan 02 03:04:05 -0700 2006", tweets[i].Tweet.CreatedAt)
-		// t2, _ := time.Parse("Mon Jan 02 03:04:05 -0700 2006", tweets[j].Tweet.CreatedAt)
-		// return t1.Before(t2)
-		return tweets[i].Index < tweets[j].Index
+		t1, _ := time.Parse("Mon Jan 02 15:04:05 -0700 2006", tweets[i].Tweet.CreatedAt)
+		t2, _ := time.Parse("Mon Jan 02 15:04:05 -0700 2006", tweets[j].Tweet.CreatedAt)
+		return t1.Before(t2)
+		// return tweets[i].Index < tweets[j].Index
 	})
 	a.tweets = tweets
 }
