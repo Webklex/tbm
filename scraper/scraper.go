@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	FetchInterval = 1 * time.Minute
+	FetchInterval  = 1 * time.Minute
+	CursorFilename = ".cursor.tmp"
 )
 
 type Scraper struct {
@@ -28,11 +29,12 @@ type Scraper struct {
 	Sections    Sections `json:"sections"`
 	variables   map[string]interface{}
 	features    map[string]interface{}
+	cursor      string
 
 	mx         sync.RWMutex
 	close      chan bool
 	running    bool
-	OnNewTweet func(ct *CachedTweet) bool `json:"-"`
+	onNewTweet OnNewTweetFunc
 
 	Delay       time.Duration `json:"-"`
 	Timeout     time.Duration `json:"-"`
@@ -47,12 +49,16 @@ type Sections struct {
 	Remove string `json:"remove"`
 }
 
-func NewScraper() *Scraper {
+type OnNewTweetFunc func(ct *CachedTweet) bool
+
+func NewScraper(onNewTweet OnNewTweetFunc) *Scraper {
 	return &Scraper{
 		AccessToken: "",
 		csrfToken:   "",
 		Cookie:      "",
+		cursor:      "",
 		running:     false,
+		onNewTweet:  onNewTweet,
 		Sections: Sections{
 			Index:  "",
 			Remove: "",
@@ -97,9 +103,16 @@ func NewScraper() *Scraper {
 
 func (s *Scraper) Start(removeBookmarks bool) {
 	s.LoadCsrfToken()
-	if err := s.LoadSections(); err != nil {
-		log.Error(err)
-		return
+	if s.Sections.Index == "" || s.Sections.Remove == "" || s.AccessToken == "" {
+		if err := s.LoadSections(); err != nil {
+			log.Error(err)
+			return
+		}
+	}
+	log.Info("Scraper started")
+
+	if b, err := os.ReadFile(CursorFilename); err == nil {
+		s.cursor = string(b)
 	}
 
 	go s.Run(removeBookmarks)
@@ -113,6 +126,8 @@ func (s *Scraper) Start(removeBookmarks bool) {
 				s.Run(removeBookmarks)
 			case <-s.close:
 				ticker.Stop()
+				s.close = nil
+				log.Warning("Scraper stopped")
 				return
 			}
 		}
@@ -197,7 +212,9 @@ func (s *Scraper) LoadSections() error {
 		re = regexp.MustCompile(`AAAAAAAAAAAAAAA([a-zA-Z0-9-_%]*)`)
 		matches = re.FindStringSubmatch(jsContent)
 		if len(matches) > 1 {
-			s.AccessToken = matches[0]
+			if s.AccessToken == "" {
+				s.AccessToken = matches[0]
+			}
 		} else {
 			return errors.New("failed to locate the access token")
 		}
@@ -205,13 +222,17 @@ func (s *Scraper) LoadSections() error {
 		re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"Bookmarks"`)
 		matches = re.FindStringSubmatch(jsContent)
 		if len(matches) > 1 {
-			s.Sections.Index = matches[1]
+			if s.Sections.Index == "" {
+				s.Sections.Index = matches[1]
+			}
 
 			re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"DeleteBookmark"`)
 			matches = re.FindStringSubmatch(jsContent)
 
 			if len(matches) > 1 {
-				s.Sections.Remove = matches[1]
+				if s.Sections.Remove == "" {
+					s.Sections.Remove = matches[1]
+				}
 			} else {
 				return errors.New("failed to locate bookmark remove section")
 			}
@@ -235,6 +256,7 @@ func (s *Scraper) SetAccessTokens(AccessToken, Cookie string) bool {
 }
 
 func (s *Scraper) buildUrl() string {
+	s.variables["cursor"] = s.cursor
 	jvb, _ := json.Marshal(s.variables)
 	fvb, _ := json.Marshal(s.features)
 
@@ -246,6 +268,13 @@ func (s *Scraper) buildUrl() string {
 	)
 }
 
+func (s *Scraper) IsRunning() bool {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+
+	return s.running
+}
+
 func (s *Scraper) Run(keepCursor bool) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
@@ -253,7 +282,33 @@ func (s *Scraper) Run(keepCursor bool) {
 		return
 	}
 	s.running = true
-	s.run(keepCursor)
+	go s.run(keepCursor)
+}
+
+func (s *Scraper) GetCursor() string {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+
+	return s.cursor
+}
+
+func (s *Scraper) SetCursor(cursor string) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	s.setCursor(cursor)
+}
+
+func (s *Scraper) setCursor(cursor string) {
+	s.cursor = cursor
+
+	f, err := os.OpenFile(CursorFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	_, _ = f.WriteString(s.cursor)
 }
 
 func (s *Scraper) run(keepCursor bool, attempts ...error) {
@@ -275,7 +330,9 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 
 	s.delayRequest()
 	res, err := http.DefaultClient.Do(req)
+	s.mx.Lock()
 	s.lastRequest = time.Now()
+	s.mx.Unlock()
 
 	if err != nil {
 		log.Error("client: error sending http request: %s", err.Error())
@@ -305,7 +362,7 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 
 	if len(rb.Errors) > 0 {
 		err := rb.Errors[0]
-		log.Warning("twitter: api error at cursor \"%s\" with %s", s.variables["cursor"], err.Message)
+		log.Warning("twitter: api error at cursor \"%s\" with %s", s.cursor, err.Message)
 
 		attempts = append(attempts, errors.New(err.Message))
 		go s.run(keepCursor, attempts...)
@@ -328,14 +385,14 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 				}
 
 				if tweet.IdStr == "" {
-					log.Info("Empty tweet id. Probably got deleted at some point")
+					log.Info("Empty tweet data. %s probably got deleted at some point", entry.EntryId)
 					// @TODO: might want to call
 					// 		  s.DeleteBookmarkDetail(entry.Content.ItemContent.TweetResults.Result.RestId)
 					//		  to delete this bookmark - but it might also be a twitter issue and the tweet becomes
 					//		  available at a later point. I'm assuming RestId equals IdStr, but I could be wrong..
 					empty++
 				} else {
-					if s.OnNewTweet(&CachedTweet{
+					if s.onNewTweet(&CachedTweet{
 						User:  user,
 						Tweet: tweet,
 					}) == false {
@@ -353,17 +410,20 @@ func (s *Scraper) run(keepCursor bool, attempts ...error) {
 		}
 	}
 
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
 	if keepCursor {
 		if c, ok := s.variables["count"].(int); ok && c <= count {
 			if count == empty {
-				s.variables["cursor"] = cursor
+				s.setCursor(cursor)
 			}
 			go s.run(keepCursor)
 		} else {
 			s.free()
 		}
 	} else if cursor != "" {
-		s.variables["cursor"] = cursor
+		s.setCursor(cursor)
 		go s.run(keepCursor)
 	} else {
 		s.free()
