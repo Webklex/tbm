@@ -17,6 +17,8 @@ type WebsocketHub struct {
 	unregister chan *WebsocketClient
 
 	onReceive func(m *Message)
+
+	close chan bool
 }
 
 type Message struct {
@@ -46,8 +48,11 @@ func NewWebsocketHub() *WebsocketHub {
 // @Description: Monitor all channels for incoming changes
 // @receiver h *WebsocketHub
 func (h *WebsocketHub) run() {
+	h.close = make(chan bool)
 	for {
 		select {
+		case <-h.close:
+			return
 		case client := <-h.register:
 			h.clients[client] = true
 		case client := <-h.unregister:
@@ -77,4 +82,8 @@ func (h *WebsocketHub) run() {
 // @param message []byte
 func (h *WebsocketHub) Broadcast(message []byte) {
 	h.broadcast <- message
+}
+
+func (h *WebsocketHub) Close() {
+	h.close <- true
 }
