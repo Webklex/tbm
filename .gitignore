@@ -9,4 +9,4 @@ test.sh
 publish.sh
 config.json
 tbm
-
+.cursor.tmp
