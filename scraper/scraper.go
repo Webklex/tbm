@@ -88,6 +88,9 @@ func NewScraper() *Scraper {
 			"tweetypie_unmention_optimization_enabled":                               true,
 			"graphql_is_translatable_rweb_tweet_is_translatable_enabled":             true,
 			"responsive_web_text_conversations_enabled":                              false,
+
+			"view_counts_public_visibility_enabled": false,
+			"view_counts_everywhere_api_enabled":    false,
 		},
 	}
 }
