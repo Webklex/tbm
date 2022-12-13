@@ -9,4 +9,31 @@
     <link href="/css/tailwind.css" rel="stylesheet">
 </head>
 <body class="bg-slate-900 text-slate-200">
+
+<div class="flex justify-center">
+    <div class="w-full lg:container bg-slate-800 shadow-lg lg:mt-8">
+        <div class="px-6 h-16 mx-auto flex justify-between items-center shadow-lg border-solid border-0 border-b-2 border-slate-900 bg-slate-800">
+            <a class="text-4xl font-bold text-yellow-500 pr-6" href="/">
+                <span class="fa fa-bookmark"></span> TBM
+            </a>
+
+            <ul id="menu" class="hidden fixed top-0 right-0 px-16 py-16 z-50 bg-slate-800
+                    md:relative md:flex md:p-0 md:bg-transparent md:flex-row md:space-x-6">
+
+                <li class="md:hidden z-90 fixed top-4 right-6">
+                    <a href="javascript:void(0)" class="text-right text-white text-4xl"
+                       onclick="toggleMenu()">&times;</a>
+                </li>
+
+                <li><a class="hover:text-yellow-500 opacity-70 hover:opacity-100 duration-300" href="/?sort_by=created_at&order=desc">Bookmarks</a></li>
+                <li><a class="hover:text-yellow-500 opacity-70 hover:opacity-100 duration-300" href="/status">Status</a></li>
+                <li><a class="hover:text-yellow-500 opacity-70 hover:opacity-100 duration-300" href="/config">Settings</a></li>
+            </ul>
+
+            <div class="flex items-center md:hidden">
+                <button class="text-yellow-500 text-4xl" onclick="toggleMenu()">
+                    &#9776;
+                </button>
+            </div>
+        </div>
 {{end}}

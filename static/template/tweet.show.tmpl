@@ -1,0 +1,19 @@
+{{define "tweet.show"}}
+    {{template "header" .}}
+
+    <div class="flex flex-wrap w-full px-4 py-4">
+        {{range $key, $item := .Thread }}
+            {{if eq $key $.Tweet.IdStr }}
+                <div class="w-full ">
+                    {{template "tweet" $item}}
+                </div>
+            {{else}}
+                <div class="w-full px-8 ">
+                    {{template "tweet" $item}}
+                </div>
+            {{end}}
+        {{end}}
+    </div>
+
+    {{template "footer"}}
+{{end}}
