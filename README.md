@@ -106,26 +106,12 @@ There are currently two different modes available. `online` and `offline`. If yo
 `offline` mode, the program won't fetch any new bookmarks and only reference previously downloaded
 resources such as tweets and media files.
 
+If you want to restart your sync, stop the application and delete the file called `.cursor.tmp` located in your 
+working directory.
 
-## Websocket commands
+
+## Websocket
 The websocket can be accessed under `ws://{host}:{port}/ws`.
-
-Get all tweets:
-```json
-{
-  "command":"get_tweets",
-  "payload":{}
-}
-```
-Search for tweets containing the search query:
-```json
-{
-  "command":"search_tweets",
-  "payload":{
-    "query": "foo bar"
-  }
-}
-```
 
 
 ## Build
@@ -148,7 +134,7 @@ go run main.go
 
 
 ## Custom Styles
-By default all assets (.js, .css, .html, etc) get included while building a new version.
+By default all assets (.js, .css, .tmpl, etc) get included while building a new version.
 
 
 ### Structure:
@@ -162,7 +148,6 @@ By default all assets (.js, .css, .html, etc) get included while building a new 
     - style.css (custom styling)
   - js
     - app.js
-  - index.html
 
 
 ## Features & pull requests
