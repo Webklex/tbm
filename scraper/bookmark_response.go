@@ -1,6 +1,10 @@
 package scraper
 
-import "time"
+import (
+	"regexp"
+	"strings"
+	"time"
+)
 
 type BookmarkResponse struct {
 	Data struct {
@@ -360,4 +364,25 @@ type TweetResult struct {
 	Source                    string `json:"source"`
 	UserIdStr                 string `json:"user_id_str"`
 	IdStr                     string `json:"id_str"`
+}
+
+func (tr *TweetResult) Text() string {
+	text := tr.FullText
+
+	for _, hashtag := range tr.Entities.Hashtags {
+		re := regexp.MustCompile(`(#` + hashtag.Text + `)( |$|\s|[^\w])`)
+		text = re.ReplaceAllString(text, `<a class="text-teal-500" href="https://twitter.com/hashtag/`+hashtag.Text+`" target="_blank" rel="noreferrer">$0</a> `)
+	}
+	for _, mention := range tr.Entities.UserMentions {
+		re := regexp.MustCompile(`(@` + mention.ScreenName + `)( |$|\s|[^\w])`)
+		text = re.ReplaceAllString(text, `<a class="text-teal-600" href="https://twitter.com/`+mention.ScreenName+`" target="_blank" rel="noreferrer">$0</a> `)
+	}
+	for _, _url := range tr.Entities.Urls {
+		text = strings.ReplaceAll(text, _url.Url, `<a class="text-yellow-600" href="`+_url.ExpandedUrl+`" target="_blank" rel="noreferrer">`+_url.ExpandedUrl+`</a>`)
+	}
+	for _, _url := range tr.Entities.Media {
+		text = strings.ReplaceAll(text, _url.Url, ``)
+	}
+
+	return text
 }
