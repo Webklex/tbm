@@ -1,0 +1,60 @@
+{{define "tweet.small"}}
+
+{{$state := GetState}}
+{{$threadLength := len $.Conversation.GlobalObjects.Tweets}}
+
+<div class="w-full w-full md:w-2/6 xl:w-1/4 py-2 px-2">
+    <div class="border border-solid border-1 border-slate-600 py-2 px-2 flex flex-wrap rounded w-full">
+        <div class="w-auto pr-2">
+            <a href="https://twitter.com/{{$.User.Legacy.ScreenName}}" target="_blank" rel="noreferrer">
+                <img class="rounded-full" src="/media/{{$.User.RestId}}" style="width: 46px" alt=""/>
+            </a>
+        </div>
+        <div class="grow">
+            <a href="https://twitter.com/{{$.User.Legacy.ScreenName}}" class="break-words" target="_blank" rel="noreferrer">
+                <span>{{$.User.Legacy.Name}}</span>
+                <br/>
+                <span class="text-xs text-slate-400">@{{$.User.Legacy.ScreenName}}</span>
+            </a>
+        </div>
+        <div class="w-full pt-2 break-words status-content" style="font-family: monospace">
+            {{html $.Tweet.Text}}
+        </div>
+        <div class="w-full">
+            {{range $.Tweet.ExtendedEntities.Media}}
+                {{$mediaUrl := (print "/media/" .IdStr)}}
+                {{if ne $state.mode "offline"}}
+                    {{$mediaUrl = .MediaUrlHttps}}
+                {{end}}
+                {{if eq .Type "video"}}
+                    {{if ne $state.mode "offline"}}
+                        {{range .VideoInfo.Variants}}{{$mediaUrl = .Url}}{{end}}
+                    {{else}}
+                        {{$mediaUrl = (print "/video/" .IdStr)}}
+                    {{end}}
+                    <a href="{{$mediaUrl}}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/{{.IdStr}}" rel="noreferrer" alt=""/></a>
+                {{else}}
+                    <a href="{{$mediaUrl}}" target="_blank" rel="noreferrer"><img class="rounded pt-2" src="/media/{{.IdStr}}" rel="noreferrer" alt=""/></a>
+                {{end}}
+            {{end}}
+        </div>
+        {{if gt $threadLength 1}}
+            <div class="w-full pt-2">
+                <a href="/tweet/{{$.Tweet.IdStr}}" class="text-teal-600" target="_blank" rel="noreferrer">
+                    <span class="fa fa-bars text-blue-400"></span> Thread ({{$threadLength}})
+                </a>
+            </div>
+        {{end}}
+        <div class="w-full flex justify-between">
+            <div class="text-xs text-slate-400 pt-2" title="Tweet ID">
+                <a href="https://twitter.com/{{$.User.Legacy.ScreenName}}/status/{{$.Tweet.IdStr}}" class="text-yellow-600" target="_blank" rel="noreferrer">
+                    <span class="fab fa-twitter text-blue-400"></span> {{$.Tweet.IdStr}}
+                </a>
+            </div>
+            <div class="text-xs text-right text-slate-400 pt-2">
+                {{FormatTime $.CreatedAt}}
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

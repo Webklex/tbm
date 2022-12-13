@@ -1,0 +1,38 @@
+{{define "status.index"}}
+    {{template "header" .}}
+    <div class="flex flex-wrap w-full px-4 py-8 justify-center">
+        <table>
+            <tr>
+                <td class="pr-4">Current cursor position:</td>
+                <td>{{ .Cursor }}</td>
+            </tr>
+            <tr>
+                <td class="pr-4">Scraper status:</td>
+                <td>
+                    {{if .Scraper}}
+                    <span class="text-green-600">Active</span>
+                    {{else}}
+                    <span class="text-red-600">Offline</span>
+                    {{end}}
+                </td>
+            </tr>
+            <tr>
+                <td>Total Bookmarks:</td>
+                <td>{{ .TotalBookmarks }}</td>
+            </tr>
+            <tr>
+                <td>Newest Tweet:</td>
+                <td>{{if .NewestTweet.IsZero}}-{{else}}{{FormatTime .NewestTweet}}{{end}}</td>
+            </tr>
+            <tr>
+                <td>Oldest Tweet:</td>
+                <td>{{if .OldestTweet.IsZero}}-{{else}}{{FormatTime .OldestTweet}}{{end}}</td>
+            </tr>
+            <tr>
+                <td>Build:</td>
+                <td>{{ .Build.Version }} ({{ .Build.Number }})</td>
+            </tr>
+        </table>
+    </div>
+    {{template "footer"}}
+{{end}}

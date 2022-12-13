@@ -1,0 +1,89 @@
+{{define "config.show"}}
+    {{template "header" .}}
+    <div class="flex flex-wrap w-full px-4 py-4">
+        <div class="w-full" id="search-holder">
+
+            <form method="post" target="_self" class="w-full flex flex-wrap">
+
+                <label class="w-full md:w-5/12 md:pr-4 my-1" for="form_input_config_filename">
+                    <span class="opacity-70">Config file name</span>
+                    <input type="text" name="config_filename" id="form_input_config_filename" value="{{.Config.ConfigFileName}}" disabled
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 opacity-70 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:w-5/12 md:pr-4 my-1" for="form_input_data_dir">
+                    <span class="opacity-70">Data directory</span>
+                    <input type="text" name="data_dir" id="form_input_data_dir" value="{{.Config.DataDir}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:w-2/12 md:pr-4 my-1" for="form_input_mode">
+                    <span class="opacity-70">Mode</span>
+                    <select name="mode" id="form_input_mode" class=" w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 ">
+                        <option value="offline" {{if eq .Config.Mode "offline"}}selected{{end}}>Offline</option>
+                        <option value="online" {{if eq .Config.Mode "online"}}selected{{end}}>Online</option>
+                    </select>
+                </label>
+
+                <label class="w-full md:pr-4 my-1 py-4 text-red-600" for="danger_remove_bookmarks">
+                    <input type="checkbox" name="danger_remove_bookmarks" {{if .Config.Danger.RemoveBookmarks}}checked{{end}} id="danger_remove_bookmarks" class="enabled:hover:border-gray-400 checked:bg-green-500 bg-slate-900">
+                    <span class="pl-2">Remove Bookmarks (Danger)</span>
+                </label>
+
+                <label class="w-full md:w-3/12 md:pr-4 my-1" for="form_input_host">
+                    <span class="opacity-70">Host</span>
+                    <input type="text" name="host" id="form_input_host" value="{{.Config.Host}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:w-3/12 md:pr-4 my-1" for="form_input_port">
+                    <span class="opacity-70">Port</span>
+                    <input type="number" name="port" id="form_input_port" value="{{.Config.Port}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:w-3/12 md:pr-4 my-1" for="form_input_delay">
+                    <span class="opacity-70">Delay</span>
+                    <input type="text" name="delay" id="form_input_delay" value="{{.Config.Delay}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:w-3/12 md:pr-4 my-1" for="form_input_timeout">
+                    <span class="opacity-70">Timeout</span>
+                    <input type="text" name="timeout" id="form_input_timeout" value="{{.Config.Timeout}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:pr-4 my-1" for="form_input_access_token">
+                    <span class="opacity-70">AccessToken</span>
+                    <input type="text" name="access_token" id="form_input_access_token" value="{{.Config.AccessToken}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:pr-4 my-1" for="form_input_cookie">
+                    <span class="opacity-70">Cookie</span>
+                    <input type="text" name="cookie" id="form_input_cookie" value="{{.Config.Cookie}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:w-3/6 md:pr-2 my-1" for="form_input_index">
+                    <span class="opacity-70">Index</span>
+                    <input type="text" name="index" id="form_input_index" value="{{.Config.Index}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <label class="w-full md:w-3/6 md:pl-2 my-1" for="form_input_remove">
+                    <span class="opacity-70">Remove</span>
+                    <input type="text" name="remove" id="form_input_remove" value="{{.Config.Remove}}"
+                           class="w-full px-3 py-3 placeholder-slate-500 text-slate-200 bg-slate-900 rounded text-sm shadow focus:outline-none focus:ring ease-linear transition-all duration-150 undefined  border-0 " placeholder="Search..." />
+                </label>
+
+                <div class="w-full text-right pt-4 pb-2">
+                    <button class="py-2 px-4 bg-yellow-500 text-slate-900 hover:bg-yellow-600 ease-linear transition-all duration-150" title="Currently not supported">Save & Apply</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+    {{template "footer"}}
+{{end}}
