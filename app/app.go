@@ -18,10 +18,10 @@ import (
 )
 
 type Application struct {
-	Timezone string          `json:"timezone"`
-	DataDir  string          `json:"data_dir"`
-	Mode     ApplicationMode `json:"mode"`
-	Danger   DangerOptions   `json:"danger"`
+	DataDir string          `json:"data_dir"`
+	Mode    ApplicationMode `json:"mode"`
+	Danger  DangerOptions   `json:"danger"`
+	SortBy  string          `json:"sort_by"`
 
 	Build          Build  `json:"-"`
 	ConfigFileName string `json:"-"`
@@ -57,7 +57,7 @@ func NewApplication(assets embed.FS) *Application {
 	dir, _ := os.Getwd()
 
 	a := &Application{
-		Timezone:       "UTC",
+		SortBy:         "date",
 		DataDir:        path.Join(dir, "data"),
 		ConfigFileName: path.Join(dir, "config.json"),
 		Scraper:        scraper.NewScraper(),
