@@ -4,12 +4,14 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
+	"github.com/julienschmidt/httprouter"
+	"html/template"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
-	"sort"
 	"strings"
+	"sync"
 	"tbm/scraper"
 	"tbm/server"
 	"tbm/utils/filesystem"
@@ -29,8 +31,9 @@ type Application struct {
 	Server  *server.Server   `json:"server"`
 	Scraper *scraper.Scraper `json:"scraper"`
 
-	tweets        []*scraper.CachedTweet
-	bookmarkIndex int
+	mx     sync.RWMutex
+	tweets map[string]*scraper.CachedTweet
+	state  map[string]interface{}
 }
 
 type Build struct {
@@ -60,16 +63,34 @@ func NewApplication(assets embed.FS) *Application {
 		SortBy:         "date",
 		DataDir:        path.Join(dir, "data"),
 		ConfigFileName: path.Join(dir, "config.json"),
-		Scraper:        scraper.NewScraper(),
-		tweets:         make([]*scraper.CachedTweet, 0),
-		bookmarkIndex:  1000000,
+		tweets:         map[string]*scraper.CachedTweet{},
 		Mode:           OnlineMode,
 		Danger: DangerOptions{
 			RemoveBookmarks: false,
 		},
+		state: map[string]interface{}{},
 	}
-	a.Server = server.NewServer(a.websocketCallback, assets)
-	a.Scraper.OnNewTweet = a.onNewTweet
+
+	a.Scraper = scraper.NewScraper(a.onNewTweet)
+	a.Server = server.NewServer(a.websocketCallback, assets, map[string]interface{}{
+		"html":       a.renderHtml,
+		"GetState":   a.GetState,
+		"FormatTime": a.FormatTime,
+	})
+	a.Server.Route(func(r *httprouter.Router) {
+		r.GET("/", a.Server.CreateViewHandler("tweet.index", a.tweetsView))
+		r.GET("/status", a.Server.CreateViewHandler("status.index", a.statusView))
+
+		r.GET("/config", a.Server.CreateViewHandler("config.show", a.configView))
+		r.POST("/config", a.Server.CreateViewHandler("config.show", a.updateConfigView))
+
+		r.GET("/tweet/:id", a.Server.CreateViewHandler("tweet.show", a.tweetView))
+
+		r.GET("/api/state", a.Server.CreateJsonHandler(a.stateEndpoint))
+		r.GET("/api/status", a.Server.CreateJsonHandler(a.statusEndpoint))
+		r.GET("/api/tweet", a.Server.CreateJsonHandler(a.tweetsEndpoint))
+		r.GET("/api/tweet/:id", a.Server.CreateJsonHandler(a.tweetEndpoint))
+	})
 
 	return a
 }
@@ -99,7 +120,8 @@ func (a *Application) Load() error {
 	}
 	filesystem.CreateDirectory(a.DataDir)
 	filesystem.CreateDirectory(path.Join(a.DataDir, "media"))
-	a.Server.Load(path.Join(a.DataDir, "media"))
+	a.Server.MediaDir = path.Join(a.DataDir, "media")
+	a.Server.Load()
 	a.LoadTweetCache()
 
 	return nil
@@ -107,39 +129,27 @@ func (a *Application) Load() error {
 
 func (a *Application) LoadTweetCache() {
 	items, _ := ioutil.ReadDir(a.DataDir)
-	tweets := make([]*scraper.CachedTweet, 0)
 	for _, item := range items {
 		if item.IsDir() == false {
 			dat, err := os.ReadFile(path.Join(a.DataDir, item.Name()))
 			if err == nil {
 				ct := &scraper.CachedTweet{}
 				if err := json.Unmarshal(dat, ct); err == nil {
-					if ct.Index != 0 && a.bookmarkIndex > ct.Index {
-						a.bookmarkIndex = ct.Index
-					} else if ct.Index == 0 {
-						ct.Index = a.bookmarkIndex - 1
-						a.bookmarkIndex = ct.Index
-					}
-					tweets = append(tweets, ct)
+					ct.Version = a.Build.Version
+					a.tweets[ct.Tweet.IdStr] = ct
 				}
 			}
 		}
 	}
-	sort.Slice(tweets, func(i, j int) bool {
-		// t1, _ := time.Parse("Mon Jan 02 03:04:05 -0700 2006", tweets[i].Tweet.CreatedAt)
-		// t2, _ := time.Parse("Mon Jan 02 03:04:05 -0700 2006", tweets[j].Tweet.CreatedAt)
-		// return t1.Before(t2)
-		return tweets[i].Index < tweets[j].Index
-	})
-	a.tweets = tweets
 }
 
 func (a *Application) Start() error {
-	a.Server.AddState("mode", a.Mode)
+	a.AddState("mode", a.Mode)
 
 	if a.Mode == OnlineMode {
 		a.Scraper.Start(a.Danger.RemoveBookmarks)
 	}
+
 	return a.Server.Start()
 }
 
@@ -156,10 +166,6 @@ func (a *Application) websocketCallback(m *server.Message) {
 	}
 
 	switch t.Command {
-	case "get_tweets":
-		r.Data["tweets"] = a.tweets
-	case "search_tweets":
-		a.searchTweets(t, r)
 	default:
 		r.SetErrorStr("unknown command")
 	}
@@ -171,37 +177,33 @@ func (a *Application) websocketCallback(m *server.Message) {
 	}
 }
 
-func (a *Application) searchTweets(t *Task, r *Response) {
-	if _query, ok := t.Payload["query"]; ok {
-		query := strings.ToLower(_query.(string))
-		tweets := make([]*scraper.CachedTweet, 0)
-		for _, tweet := range a.tweets {
-			add := strings.Contains(strings.ToLower(tweet.Tweet.FullText), query)
-			if add == false {
-				for _, u := range tweet.Tweet.Entities.Urls {
-					if strings.Contains(strings.ToLower(u.ExpandedUrl), query) {
-						add = true
-						break
-					}
-				}
-
-				if add == false {
-					if strings.Contains(strings.ToLower(tweet.User.Legacy.ScreenName), query) {
-						add = true
-					} else if strings.Contains(strings.ToLower(tweet.User.Legacy.Name), query) {
-						add = true
-					}
+func (a *Application) SearchTweets(query string) []*scraper.CachedTweet {
+	query = strings.ToLower(query)
+	tweets := make([]*scraper.CachedTweet, 0)
+	for _, tweet := range a.GetTweets() {
+		add := strings.Contains(strings.ToLower(tweet.Tweet.FullText), query)
+		if add == false {
+			for _, u := range tweet.Tweet.Entities.Urls {
+				if strings.Contains(strings.ToLower(u.ExpandedUrl), query) {
+					add = true
+					break
 				}
 			}
 
-			if add {
-				tweets = append(tweets, tweet)
+			if add == false {
+				if strings.Contains(strings.ToLower(tweet.User.Legacy.ScreenName), query) {
+					add = true
+				} else if strings.Contains(strings.ToLower(tweet.User.Legacy.Name), query) {
+					add = true
+				}
 			}
 		}
-		r.Data["tweets"] = tweets
-	} else {
-		r.SetErrorStr("query parameter not found")
+
+		if add {
+			tweets = append(tweets, tweet)
+		}
 	}
+	return tweets
 }
 
 func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
@@ -213,15 +215,14 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 			return false
 		}
 
-		a.bookmarkIndex--
 		ct.Conversation = *conversation
-		ct.Index = a.bookmarkIndex
+		ct.Version = a.Build.Version
 
 		d, err := json.Marshal(ct)
 		if err == nil {
 			err = ioutil.WriteFile(filename, d, 0644)
 			if err == nil {
-				a.tweets = append(a.tweets, ct)
+				a.tweets[ct.Tweet.IdStr] = ct
 
 				ext, _ := GetFileExtensionFromUrl(ct.User.Legacy.ProfileImageUrlHttps)
 				if ext == "" {
@@ -272,7 +273,7 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 				if b, e := r.Encode(); e == nil {
 					a.Server.Hub().Broadcast(b)
 				} else {
-					log.Error("Failed to encode response: %s", err.Error())
+					log.Error("Failed to encode response: %s", e.Error())
 					return false
 				}
 			}
@@ -296,14 +297,60 @@ func (a *Application) onNewTweet(ct *scraper.CachedTweet) bool {
 			}
 		}
 	} else {
-		log.Info("Tweet skipped (already fetched): %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
+		//log.Info("Tweet skipped (already fetched): %s posted on %s", ct.Tweet.IdStr, ct.Tweet.CreatedAt)
 	}
 
 	return true
 }
 
-func (a *Application) GetTweets() []*scraper.CachedTweet {
+func (a *Application) GetTweets() map[string]*scraper.CachedTweet {
+	a.mx.RLock()
+	defer a.mx.RUnlock()
+
 	return a.tweets
+}
+
+func (a *Application) AddTweet(ct *scraper.CachedTweet) {
+	a.mx.RLock()
+	defer a.mx.RUnlock()
+
+	a.tweets[ct.Tweet.IdStr] = ct
+}
+
+func (a *Application) SetState(state map[string]interface{}) {
+	a.mx.Lock()
+	defer a.mx.Unlock()
+
+	a.state = state
+}
+
+func (a *Application) AddState(key string, value interface{}) {
+	a.mx.Lock()
+	defer a.mx.Unlock()
+
+	a.state[key] = value
+}
+
+func (a *Application) GetState() map[string]interface{} {
+	a.mx.RLock()
+	defer a.mx.RUnlock()
+
+	return a.state
+}
+
+func (a *Application) FormatTime(t interface{}) string {
+	switch t.(type) {
+	case time.Time:
+		return t.(time.Time).Format("02.01.2006 15:04")
+	case string:
+		nt, _ := time.Parse("Mon Jan 02 15:04:05 -0700 2006", t.(string))
+		return a.FormatTime(nt)
+	}
+	return t.(string)
+}
+
+func (a *Application) renderHtml(str string) template.HTML {
+	return template.HTML(str)
 }
 
 func GetFileExtensionFromUrl(rawUrl string) (string, error) {
