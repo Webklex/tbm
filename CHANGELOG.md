@@ -16,6 +16,17 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - NaN
 
 
+## [2.1.0] - 2022-12-13
+### Fixed
+- Newly required twitter api attributes added
+
+### Added
+- Pagination support added
+- Search extended
+- Programmatic and safe program interruption added #19
+- Status page added
+
+
 ## [2.0.0] - 2022-11-21
 ### Fixed
 - Prevent multiple parallel runners
