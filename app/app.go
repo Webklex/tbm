@@ -143,6 +143,11 @@ func (a *Application) Start() error {
 	return a.Server.Start()
 }
 
+func (a *Application) Stop() error {
+	a.Scraper.Stop()
+	return a.Server.Stop()
+}
+
 func (a *Application) websocketCallback(m *server.Message) {
 	t := &Task{}
 	r := NewResponse()

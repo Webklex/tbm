@@ -120,7 +120,9 @@ func (s *Scraper) Start(removeBookmarks bool) {
 }
 
 func (s *Scraper) Stop() {
-	s.close <- true
+	if s.close != nil {
+		s.close <- true
+	}
 }
 
 func (s *Scraper) delayRequest() {
