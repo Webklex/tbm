@@ -16,6 +16,11 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - NaN
 
 
+## [2.2.0] - 2023-06-12
+### Fixed
+- Twitter api and website changes integrated #30
+
+
 ## [2.1.0] - 2022-12-13
 ### Fixed
 - Newly required twitter api attributes added
