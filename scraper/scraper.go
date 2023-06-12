@@ -30,6 +30,7 @@ type Scraper struct {
 	variables   map[string]interface{}
 	features    map[string]interface{}
 	cursor      string
+	jsAppendix  string
 
 	mx         sync.RWMutex
 	close      chan bool
@@ -57,6 +58,7 @@ func NewScraper(onNewTweet OnNewTweetFunc) *Scraper {
 		csrfToken:   "",
 		Cookie:      "",
 		cursor:      "",
+		jsAppendix:  "",
 		running:     false,
 		onNewTweet:  onNewTweet,
 		Sections: Sections{
@@ -67,36 +69,35 @@ func NewScraper(onNewTweet OnNewTweetFunc) *Scraper {
 		Timeout:     time.Second * 10,
 		lastRequest: time.Time{},
 		variables: map[string]interface{}{
-			"count":                       20,
-			"cursor":                      "",
-			"includePromotedContent":      true,
-			"withSuperFollowsUserFields":  true,
-			"withDownvotePerspective":     false,
-			"withReactionsMetadata":       false,
-			"withReactionsPerspective":    false,
-			"withSuperFollowsTweetFields": true,
+			"count":                  20,
+			"cursor":                 "",
+			"includePromotedContent": false,
+			//"withSuperFollowsUserFields":  true,
+			//"withDownvotePerspective":     false,
+			//"withReactionsMetadata":       false,
+			//"withReactionsPerspective":    false,
+			//"withSuperFollowsTweetFields": true,
 		},
 		features: map[string]interface{}{
-			"dont_mention_me_view_api_enabled":      true,
-			"interactive_text_enabled":              true,
-			"responsive_web_uc_gql_enabled":         true,
-			"vibe_api_enabled":                      true,
-			"responsive_web_edit_tweet_api_enabled": false,
-			"standardized_nudges_misinfo":           true,
+			"graphql_timeline_v2_bookmark_timeline":                                   true,
+			"rweb_lists_timeline_redesign_enabled":                                    true,
+			"responsive_web_graphql_exclude_directive_enabled":                        true,
+			"verified_phone_label_enabled":                                            false,
+			"creator_subscriptions_tweet_preview_api_enabled":                         true,
+			"responsive_web_graphql_timeline_navigation_enabled":                      true,
+			"responsive_web_graphql_skip_user_profile_image_extensions_enabled":       false,
+			"tweetypie_unmention_optimization_enabled":                                true,
+			"responsive_web_edit_tweet_api_enabled":                                   true,
+			"graphql_is_translatable_rweb_tweet_is_translatable_enabled":              true,
+			"view_counts_everywhere_api_enabled":                                      true,
+			"longform_notetweets_consumption_enabled":                                 true,
+			"tweet_awards_web_tipping_enabled":                                        false,
+			"freedom_of_speech_not_reach_fetch_enabled":                               true,
+			"standardized_nudges_misinfo":                                             true,
 			"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": false,
+			"longform_notetweets_rich_text_read_enabled":                              true,
+			"longform_notetweets_inline_media_enabled":                                false,
 			"responsive_web_enhance_cards_enabled":                                    false,
-
-			"graphql_timeline_v2_bookmark_timeline":                                  false,
-			"responsive_web_twitter_blue_verified_badge_is_enabled":                  true,
-			"verified_phone_label_enabled":                                           false,
-			"responsive_web_graphql_timeline_navigation_enabled":                     true,
-			"unified_cards_ad_metadata_container_dynamic_card_content_query_enabled": true,
-			"tweetypie_unmention_optimization_enabled":                               true,
-			"graphql_is_translatable_rweb_tweet_is_translatable_enabled":             true,
-			"responsive_web_text_conversations_enabled":                              false,
-
-			"view_counts_public_visibility_enabled": false,
-			"view_counts_everywhere_api_enabled":    false,
 		},
 	}
 }
@@ -167,7 +168,10 @@ func (s *Scraper) LoadSections() error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Cookie", s.Cookie)
+	req.Header.Set("cookie", s.Cookie)
+
+	// Something similar might be required in the future, if the legacy version gets removed
+	//req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
 
 	resp, err := http.DefaultClient.Do(req)
 
@@ -183,17 +187,84 @@ func (s *Scraper) LoadSections() error {
 		return err
 	}
 
-	re := regexp.MustCompile(`https://abs\.twimg\.com/responsive-web/client-web-legacy/main\.([0-9a-zA-Z]*)\.js`)
-	matches := re.FindStringSubmatch(string(b))
+	bookmarkHtml := string(b)
+
+	// Check if the legacy version is used
+	isLegacy := strings.Contains(bookmarkHtml, "https://abs.twimg.com/responsive-web/client-web-legacy/main")
+
+	if isLegacy {
+		if err := s.fetchMainJs(bookmarkHtml, `https://abs\.twimg\.com/responsive-web/client-web-legacy/main\.([0-9a-zA-Z]*)\.js`); err != nil {
+			return err
+		}
+	} else if err := s.fetchMainJs(bookmarkHtml, `https://abs\.twimg\.com/responsive-web/client-web/main\.([0-9a-zA-Z]*)\.js`); err != nil {
+		return err
+	}
+
+	re := regexp.MustCompile(`",api:"([0-9a-zA-Z]*)",`)
+	matches := re.FindStringSubmatch(bookmarkHtml)
+	if len(matches) > 0 {
+		apiJsFileToken := matches[1] + s.jsAppendix
+
+		if isLegacy {
+			if err := s.fetchApiJs("https://abs.twimg.com/responsive-web/client-web-legacy/api." + apiJsFileToken + ".js"); err != nil {
+				return err
+			}
+		} else if err := s.fetchApiJs("https://abs.twimg.com/responsive-web/client-web/api." + apiJsFileToken + ".js"); err != nil {
+			return err
+		}
+	} else {
+		return errors.New("failed to locate bookmark index section file")
+	}
+
+	return nil
+}
+
+func (s *Scraper) fetchApiJs(apiJsFile string) error {
+	req, err := http.NewRequest("GET", apiJsFile, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return errors.New("failed to download resource with \"" + resp.Status + "\" from " + apiJsFile)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	jsContent := string(b)
+	re := regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"Bookmarks"`)
+	matches := re.FindStringSubmatch(jsContent)
+	if len(matches) > 1 {
+		if s.Sections.Index == "" {
+			s.Sections.Index = matches[1]
+		}
+	} else {
+		return errors.New("failed to locate bookmark index section")
+	}
+	return nil
+}
+
+func (s *Scraper) fetchMainJs(bookmarkHtml string, regex string) error {
+
+	re := regexp.MustCompile(regex)
+	matches := re.FindStringSubmatch(bookmarkHtml)
 	if len(matches) > 0 {
 		mainJsFile := matches[0]
 
-		req, err = http.NewRequest("GET", mainJsFile, nil)
+		req, err := http.NewRequest("GET", mainJsFile, nil)
 		if err != nil {
 			return err
 		}
 
-		resp, err = http.DefaultClient.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 
 		if err != nil {
 			return err
@@ -202,12 +273,23 @@ func (s *Scraper) LoadSections() error {
 			return errors.New("failed to download resource with \"" + resp.Status + "\" from " + mainJsFile)
 		}
 
-		b, err = io.ReadAll(resp.Body)
+		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
 
 		jsContent := string(b)
+
+		re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"DeleteBookmark"`)
+		matches = re.FindStringSubmatch(jsContent)
+
+		if len(matches) > 1 {
+			if s.Sections.Remove == "" {
+				s.Sections.Remove = matches[1]
+			}
+		} else {
+			return errors.New("failed to locate bookmark remove section")
+		}
 
 		re = regexp.MustCompile(`AAAAAAAAAAAAAAA([a-zA-Z0-9-_%]*)`)
 		matches = re.FindStringSubmatch(jsContent)
@@ -219,30 +301,17 @@ func (s *Scraper) LoadSections() error {
 			return errors.New("failed to locate the access token")
 		}
 
-		re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"Bookmarks"`)
-		matches = re.FindStringSubmatch(jsContent)
+		// Get the last char from the js file path excluding the extension
+		re = regexp.MustCompile(`main\.([0-9a-zA-Z]*)\.js`)
+		matches = re.FindStringSubmatch(mainJsFile)
 		if len(matches) > 1 {
-			if s.Sections.Index == "" {
-				s.Sections.Index = matches[1]
-			}
-
-			re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"DeleteBookmark"`)
-			matches = re.FindStringSubmatch(jsContent)
-
-			if len(matches) > 1 {
-				if s.Sections.Remove == "" {
-					s.Sections.Remove = matches[1]
-				}
-			} else {
-				return errors.New("failed to locate bookmark remove section")
-			}
+			s.jsAppendix = matches[1][len(matches[1])-1:]
 		} else {
-			return errors.New("failed to locate bookmark index section")
+			return errors.New("failed to locate the js appendix")
 		}
 	} else {
 		return errors.New("failed to locate main js file")
 	}
-
 	return nil
 }
 

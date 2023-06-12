@@ -43,7 +43,7 @@ type BookmarkResponse struct {
 					ImmediateReactions []interface{} `json:"immediateReactions"`
 				} `json:"responseObjects"`
 			} `json:"timeline"`
-		} `json:"bookmark_timeline"`
+		} `json:"bookmark_timeline_v2"`
 	} `json:"data"`
 
 	Errors []struct {

@@ -10,3 +10,4 @@ publish.sh
 config.json
 tbm
 .cursor.tmp
+.cursor.tmp.bak
