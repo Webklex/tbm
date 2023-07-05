@@ -48,6 +48,7 @@ type Scraper struct {
 type Sections struct {
 	Index  string `json:"index"`
 	Remove string `json:"remove"`
+	Detail string `json:"detail"`
 }
 
 type OnNewTweetFunc func(ct *CachedTweet) bool
@@ -91,12 +92,14 @@ func NewScraper(onNewTweet OnNewTweetFunc) *Scraper {
 			"graphql_is_translatable_rweb_tweet_is_translatable_enabled":              true,
 			"view_counts_everywhere_api_enabled":                                      true,
 			"longform_notetweets_consumption_enabled":                                 true,
+			"responsive_web_twitter_article_tweet_consumption_enabled":                false,
 			"tweet_awards_web_tipping_enabled":                                        false,
 			"freedom_of_speech_not_reach_fetch_enabled":                               true,
 			"standardized_nudges_misinfo":                                             true,
-			"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": false,
+			"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": true,
 			"longform_notetweets_rich_text_read_enabled":                              true,
-			"longform_notetweets_inline_media_enabled":                                false,
+			"longform_notetweets_inline_media_enabled":                                true,
+			"responsive_web_media_download_video_enabled":                             false,
 			"responsive_web_enhance_cards_enabled":                                    false,
 		},
 	}
@@ -249,6 +252,17 @@ func (s *Scraper) fetchApiJs(apiJsFile string) error {
 	} else {
 		return errors.New("failed to locate bookmark index section")
 	}
+
+	re = regexp.MustCompile(`"([a-zA-Z0-9-_]*)",operationName:"TweetDetail"`)
+	matches = re.FindStringSubmatch(jsContent)
+	if len(matches) > 1 {
+		if s.Sections.Detail == "" {
+			s.Sections.Detail = matches[1]
+		}
+	} else {
+		return errors.New("failed to locate bookmark detail section")
+	}
+
 	return nil
 }
 
@@ -564,52 +578,80 @@ func (s *Scraper) DeleteBookmarkDetail(id string) (*RemoveBookmarkResponse, erro
 }
 
 func (s *Scraper) TweetDetail(id string) (*ConversationResponse, error) {
-	req, err := http.NewRequest("GET", "https://twitter.com/i/api/2/timeline/conversation/"+id+".json", nil)
+	variables, err := json.Marshal(map[string]interface{}{
+		//"cursor":                               "",
+		"focalTweetId":                           id,
+		"referrer":                               "bookmarks",
+		"with_rux_injections":                    false,
+		"includePromotedContent":                 true,
+		"withCommunity":                          true,
+		"withQuickPromoteEligibilityTweetFields": true,
+		"withBirdwatchNotes":                     true,
+		"withVoice":                              true,
+		"withV2Timeline":                         true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	features, err := json.Marshal(map[string]interface{}{
+		"rweb_lists_timeline_redesign_enabled":                                    true,
+		"responsive_web_graphql_exclude_directive_enabled":                        true,
+		"verified_phone_label_enabled":                                            false,
+		"creator_subscriptions_tweet_preview_api_enabled":                         true,
+		"responsive_web_graphql_timeline_navigation_enabled":                      true,
+		"responsive_web_graphql_skip_user_profile_image_extensions_enabled":       false,
+		"tweetypie_unmention_optimization_enabled":                                true,
+		"responsive_web_edit_tweet_api_enabled":                                   true,
+		"graphql_is_translatable_rweb_tweet_is_translatable_enabled":              true,
+		"view_counts_everywhere_api_enabled":                                      true,
+		"longform_notetweets_consumption_enabled":                                 true,
+		"responsive_web_twitter_article_tweet_consumption_enabled":                false,
+		"tweet_awards_web_tipping_enabled":                                        false,
+		"freedom_of_speech_not_reach_fetch_enabled":                               true,
+		"standardized_nudges_misinfo":                                             true,
+		"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": true,
+		"longform_notetweets_rich_text_read_enabled":                              true,
+		"longform_notetweets_inline_media_enabled":                                true,
+		"responsive_web_media_download_video_enabled":                             false,
+		"responsive_web_enhance_cards_enabled":                                    false,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	fieldToggles, err := json.Marshal(map[string]interface{}{
+		"withArticleRichContentState": false,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", "https://twitter.com/i/api/graphql/"+s.Sections.Detail+"/TweetDetail?variables="+
+		url.QueryEscape(string(variables))+"&features="+
+		url.QueryEscape(string(features))+"&fieldToggles="+
+		url.QueryEscape(string(fieldToggles)), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Cookie", s.Cookie)
 	req.Header.Set("authorization", "Bearer "+s.AccessToken)
 	req.Header.Set("x-csrf-token", s.csrfToken)
-
-	q := req.URL.Query()
-	q.Add("include_profile_interstitial_type", "1")
-	q.Add("include_blocking", "1")
-	q.Add("include_blocked_by", "1")
-	q.Add("include_followed_by", "1")
-	q.Add("include_want_retweets", "1")
-	q.Add("include_mute_edge", "1")
-	q.Add("include_can_dm", "1")
-	q.Add("include_can_media_tag", "1")
-	q.Add("include_ext_has_nft_avatar", "1")
-	q.Add("skip_status", "1")
-	q.Add("cards_platform", "Web-12")
-	q.Add("include_cards", "1")
-	q.Add("include_ext_alt_text", "true")
-	q.Add("include_quote_count", "true")
-	q.Add("include_reply_count", "1")
-	q.Add("tweet_mode", "extended")
-	q.Add("include_entities", "true")
-	q.Add("include_user_entities", "true")
-	q.Add("include_ext_media_color", "true")
-	q.Add("include_ext_media_availability", "true")
-	q.Add("include_ext_sensitive_media_warning", "true")
-	q.Add("send_error_codes", "true")
-	q.Add("simple_quoted_tweet", "true")
-	q.Add("include_tweet_replies", "true")
-	q.Add("ext", "mediaStats,highlightedLabel,hasNftAvatar,voiceInfo,superFollowMetadata")
-	req.URL.RawQuery = q.Encode()
+	req.Header.Set("content-type", "application/json")
 
 	s.delayRequest()
 	resp, err := http.DefaultClient.Do(req)
 	s.lastRequest = time.Now()
 
-	if err != nil {
-		return nil, err
-	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, errors.New("failed to download resource with \"" + resp.Status + "\" from " + "https://twitter.com/i/api/2/timeline/conversation/" + id + ".json")
+		return nil, errors.New("failed to download resource with \"" + resp.Status + "\" from twitter.com")
 	}
+
+	// The following part won't work because the response structure has changed. Everything up to this point should work.
+	// This call has to be repeated until all conversations have been fetched. This can be accomplished by providing the previously received cursor.
+	// However, ConversationResponse has to be modified before continuing...
+	fmt.Println("Please see: https://github.com/Webklex/tbm/issues/31")
+	os.Exit(2)
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
